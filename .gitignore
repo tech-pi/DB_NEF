@@ -9,6 +9,8 @@ __pycache__/
 # Distribution / packaging
 .Python
 build/
+demo/
+test/
 develop-eggs/
 dist/
 downloads/
@@ -24,6 +26,7 @@ wheels/
 .installed.cfg
 *.egg
 MANIFEST
+
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -102,3 +105,23 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+#hdf5 files
+*.h5
+
+# temporal folder
+tmp
+
+# temporal files
+tmp*
+
+# xml files
+*.xml
+*.iml
+
+# notebook
+*.ipynb
+
+# release to pypi
+release.sh
+
