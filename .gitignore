@@ -125,3 +125,5 @@ tmp*
 # release to pypi
 release.sh
 
+# source directory
+sources

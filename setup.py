@@ -47,7 +47,7 @@ setup(name = 'dbnef',
       packages = find_packages(),
       install_requires = [
 
-      ],
+          'sqlalchemy'],
       zip_safe = False,
       entry_points = '''
 
