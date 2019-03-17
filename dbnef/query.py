@@ -8,11 +8,11 @@
 @desc:
 '''
 
-from .config import session
+from .config import create_session
 from .utils import convert_snake_to_Camel
 from .create_table_class import create_table_class
 from sqlalchemy.inspection import _self_inspects
-from .config import create_session
+from .typing import TYPE_BIND
 
 
 @_self_inspects
@@ -20,29 +20,24 @@ class Query(object):
     pass
 
 
-def select(table_name: str, fields = [], conditions = [], order_by = []):
+def select(table_name: str, fields = [], conditions = {}, order_by = []):
     session = create_session()
     table_class_name = convert_snake_to_Camel(table_name) + 'Table'
-    if table_class_name in globals():
-        table_class = globals()[table_class_name]
-    elif 'TYPE_BIND' in globals() and table_class_name in globals()['TYPE_BIND']:
-        table_class = globals()['TYPE_BIND'][table_class_name]
+    if table_class_name in TYPE_BIND:
+        table_class = TYPE_BIND[table_class_name]
     else:
-        raise ValueError(f'can not find any evidences in globals() of {table_name}')
-
-    query = session.query(table_class)
-    for cond in list(conditions):
-        if query._criterion is None:
-            query._criterion = [table_class_name + '.' + cond]
-        else:
-            query._criterion = query._criterion + [table_class_name + '.' + cond]
-
-    cond_dict = {}
+        raise ValueError(f'can not find any evidences in globals() of {table_class_name}')
+    if not fields:
+        query = session.query(table_class)
+    else:
+        query = session.query(*[getattr(table_class, field) for field in fields])
+    cond_all = True
     for key, val in conditions.items():
         if not isinstance(val, list):
-            val = [val]
-        cond_dict.update({key: val})
-    outs = session.query(table_class).filter()
+            val = list(val)
+        cond_all = cond_all and getattr(table_class, key).in_(val)
+
+    return query.filter(cond_all).all()
 #
 #
 # def select_with_id(table_name, ids = None):

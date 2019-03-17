@@ -10,53 +10,59 @@
 
 from typing import Dict, Any
 import hashlib
-
-from .typing import DataClass
-from .utils import any_type_saver
-from .config import table_support_type, create_session
+import numpy as np
+from typing import List
+from .typing import is_dataclass
+from .utils import any_type_saver, file_hasher
 from .create_table_class import create_table_class
 
 
-def parse_dataclass_to_table_object(obj: DataClass):
+def parse_dataclass_to_table_object(obj):
+    assert is_dataclass(obj)
     table_class = create_table_class(obj.__class__)
 
-    kwargs: Dict[str, Any]
+    kwargs = {}
     m = hashlib.sha256()
-    for key, spec in obj.fields().items():
-        if key == 'data':
-            path_ = any_type_saver(getattr(obj, key))
-            kwargs.update({key: path_})
-            m.update(path_.encode('utf-8'))
-        elif issubclass(spec.type, DataClass):
-            sub_, hash_ = parse_dataclass_to_table_object(getattr(obj, key))
-            kwargs.update(({key: sub_}))
-            m.update(hash_.encode('utf-8'))
-        elif spec.type in table_support_type:
-            val = getattr(obj, key)
-            val_ = table_support_type[type(val)](val)
-            kwargs.update({key: val_})
-            m.update(str(val_).encode('utf-8'))
-        else:
-            raise NotImplementedError(f'type {val.type} is not implemented yet.')
 
-    hash_ = m.hexdigest()
-    kwargs.update({'hash_': hash_})
-    kwargs.update({'extend_existing': True})
+    for key, spec in obj.__class__.fields().items():
+        if spec.type is int:
+            val = int(getattr(obj, key))
+        elif spec.type is float:
+            val = float(getattr(obj, key))
+        elif spec.type is bool:
+            val = bool(getattr(obj, key))
+        elif spec.type is str:
+            val = str(getattr(obj, key))
+        elif spec.type in (List[int], List[float], List[str], List[bool]):
+            val = list(getattr(obj, key))
+        elif spec.type is np.ndarray:
+            val_ = any_type_saver(getattr(obj, key))
+            val = file_hasher(val_)
+        elif is_dataclass(spec.type):
+            val = parse_dataclass_to_table_object(getattr(obj, key))
+        else:
+            raise NotImplementedError(f'type {spec.type} is not implemented yet.')
+
+        if is_dataclass(val):
+            m.update(hash(val))
+        else:
+            m.update(str(val).encode('utf-8'))
+        kwargs.update({key: val})
+    kwargs.update({'__hash__': m.hexdigest()})
+
     table_obj = table_class(**kwargs)
-    return table_obj, hash_
+    return table_obj
 
 
 def add_object_to_table(objs, commit = False):
     if not isinstance(objs, list):
         objs = [objs]
-    table_objs = [parse_dataclass_to_table_object(obj)[0] for obj in objs]
-    session = create_session()
+    table_objs = [parse_dataclass_to_table_object(obj) for obj in objs]
 
     if commit:
-        session.add_all(table_objs)
+        from .config import create_session
+        session = create_session()
+        session.add(table_objs[0])
         session.commit()
-    try:
-        session.rollback()
-    except:
-        pass
+
     return table_objs

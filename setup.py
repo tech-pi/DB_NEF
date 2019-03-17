@@ -1,9 +1,9 @@
 from setuptools import setup, find_packages
 
 MAJOR = 0
-MINOR = 6
-MICRO = 1  # 0 for alpha, 1 for beta, 2 for release candicate, 3 for release
-MINOR_SUB = 11
+MINOR = 0
+MICRO = 0  # 0 for alpha, 1 for beta, 2 for release candicate, 3 for release
+MINOR_SUB = 1
 
 
 def get_version(major, minor, micro, minor_sub):
@@ -19,7 +19,7 @@ def get_version(major, minor, micro, minor_sub):
 SHORT_VERSION, FULL_VERSION, TIME_STRING = get_version(MAJOR, MINOR, MICRO, MINOR_SUB)
 
 
-def write_version_py(filename = 'srfnef/version.py'):
+def write_version_py(filename = 'dbnef/version.py'):
     cnt = """
 # THIS FILE IS GENERATED FROM SRFNEF SETUP.PY
 # 
@@ -43,7 +43,6 @@ setup(name = 'dbnef',
       author = 'Minghao Guo',
       author_email = 'mh.guo0111@gmail.com',
       license = 'Apache',
-      # packages = ['srfnef'],
       packages = find_packages(),
       install_requires = [
 
