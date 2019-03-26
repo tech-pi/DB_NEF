@@ -8,24 +8,32 @@
 @desc:
 '''
 
-from typing import Dict, Any
 import hashlib
 import numpy as np
 from typing import List
-from .typing import is_dataclass
-from .utils import any_type_saver, file_hasher
-from .create_table_class import create_table_class
+from getpass import getuser
+import time
+from .utils import any_type_saver, file_hasher, is_dataclass
+from .create_table_class import create_table_class, create_table
+from .config import session
+
+resource_directory = './resources/'
 
 
-def parse_dataclass_to_table_object(obj):
+def add_object_to_table(obj, *, labels = []):
     assert is_dataclass(obj)
-    table_class = create_table_class(obj.__class__)
+    table_class = create_table(obj.__class__, commit = True)
 
-    kwargs = {}
+    kwargs = {'datetime': time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(int(time.time())))}
+    kwargs.update({'creator': getuser()})
+    kwargs.update({'labels': labels})
+    kwargs.update({'status': 'READY'})
     m = hashlib.sha256()
 
     for key, spec in obj.__class__.fields().items():
-        if spec.type is int:
+        if getattr(obj, key) is None:
+            val = None
+        elif spec.type is int:
             val = int(getattr(obj, key))
         elif spec.type is float:
             val = float(getattr(obj, key))
@@ -33,13 +41,13 @@ def parse_dataclass_to_table_object(obj):
             val = bool(getattr(obj, key))
         elif spec.type is str:
             val = str(getattr(obj, key))
-        elif spec.type in (List[int], List[float], List[str], List[bool]):
+        elif spec.type in (List[int], List[float], List[str], List[bool], list):
             val = list(getattr(obj, key))
         elif spec.type is np.ndarray:
             val_ = any_type_saver(getattr(obj, key))
             val = file_hasher(val_)
         elif is_dataclass(spec.type):
-            val = parse_dataclass_to_table_object(getattr(obj, key))
+            val, __hash__ = add_object_to_table(getattr(obj, key), labels = labels)
         else:
             raise NotImplementedError(f'type {spec.type} is not implemented yet.')
 
@@ -51,18 +59,6 @@ def parse_dataclass_to_table_object(obj):
     kwargs.update({'__hash__': m.hexdigest()})
 
     table_obj = table_class(**kwargs)
-    return table_obj
-
-
-def add_object_to_table(objs, commit = False):
-    if not isinstance(objs, list):
-        objs = [objs]
-    table_objs = [parse_dataclass_to_table_object(obj) for obj in objs]
-
-    if commit:
-        from .config import create_session
-        session = create_session()
-        session.add(table_objs[0])
-        session.commit()
-
-    return table_objs
+    session.add(table_obj)
+    session.commit()
+    return table_obj, m.hexdigest()

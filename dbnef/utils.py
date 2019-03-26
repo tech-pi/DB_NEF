@@ -15,7 +15,16 @@ import time
 import hashlib
 import tqdm
 from getpass import getuser
-from .typing import is_dataclass
+
+TABLE_TYPE_BIND = {}
+
+
+def is_dataclass(cls):
+    try:
+        cls.fields()
+        return True
+    except:
+        return False
 
 
 def is_notebook():
@@ -74,13 +83,15 @@ def get_hash_of_timestamp():
     return m.hexdigest()
 
 
-KW_EXCEPTION = ('_sa_instance_state', 'id', 'state', 'create', 'submit', 'finish', 'depends',
-                'scheduler', 'backend', 'workdir', 'id_on_backend', 'state_on_backend', 'worker',
-                'script', 'inputs', 'outputs', 'fn', 'name', 'creator', 'labels', 'datetime',
-                '_hash', 'tasks', 'data_shape', 'extend_existing')
+NECESSARIES = ('_sa_instance_state', 'id', 'state', 'create', 'submit', 'finish', 'depends',
+               'scheduler', 'backend', 'workdir', 'id_on_backend', 'state_on_backend', 'worker',
+               'script', 'inputs', 'outputs', 'fn', 'creator', 'labels', 'datetime',
+               '__hash__', 'tasks', 'data_shape', 'extend_existing', 'status')
+
+EXCEPTIONS = NECESSARIES + ()
 
 
-def dict_hasher(dct: dict, exception = KW_EXCEPTION):
+def dict_hasher(dct: dict, exception = NECESSARIES):
     m = hashlib.sha256()
     for key, val in dct.items():
         if key in exception:
@@ -89,7 +100,7 @@ def dict_hasher(dct: dict, exception = KW_EXCEPTION):
     return m.hexdigest()
 
 
-def dataclass_hasher(obj, exception = KW_EXCEPTION):
+def dataclass_hasher(obj, exception = NECESSARIES):
     m = hashlib.sha256()
     dct = obj.as_dict(recurse = False)
     for key, val in dct.items():
@@ -132,6 +143,14 @@ def any_type_saver(data):
         raise NotImplementedError(f'`any_saver` does not support type {type(data)} saving. ')
 
 
+def any_type_loader(path_: str):
+    import numpy as np
+    if path_.endswith('npy'):
+        return np.load(path_)
+    else:
+        raise NotImplementedError(f'`any_type_loader` does not {path_} loading. ')
+
+
 def parse_table_class(table_name: str):
     from .create_table_class import create_table
 
@@ -141,12 +160,12 @@ def parse_table_class(table_name: str):
         table_class = globals()[table_class_name]
     elif class_name in globals():
         table_class = create_table(globals()[class_name], commit = False)
-    elif 'TYPE_BIND' in globals():
-        TYPE_BIND = globals()['TYPE_BIND']
+    elif 'TABLE_TYPE_BIND' in globals():
+        TYPE_BIND = globals()['TABLE_TYPE_BIND']
         if table_class_name in TYPE_BIND:
             table_class = TYPE_BIND[table_class_name]
         elif class_name in TYPE_BIND:
-            table_class = create_table(globals()['TYPE_BIND'][class_name], commit = False)
+            table_class = create_table(globals()['TABLE_TYPE_BIND'][class_name], commit = False)
     else:
         raise ValueError(f'cannot find any envidence of {class_name} to do deserialization')
     return table_class

@@ -7,115 +7,104 @@
 @date: 3/13/2019
 @desc:
 '''
+from sqlalchemy.orm import sessionmaker
 
-from .config import create_session
-from .utils import convert_snake_to_Camel
+from .config import engine
+from .utils import TABLE_TYPE_BIND
+from .utils import any_type_loader, EXCEPTIONS
 from .create_table_class import create_table_class
-from sqlalchemy.inspection import _self_inspects
-from .typing import TYPE_BIND
 
 
-@_self_inspects
-class Query(object):
-    pass
+def query_object_with_id(cls, *, ids = None):
+    Session = sessionmaker(bind = engine)
+    session = Session()
+    if ids is None:
+        ids = []
+    if not isinstance(ids, list):
+        ids = [ids]
 
-
-def select(table_name: str, fields = [], conditions = {}, order_by = []):
-    session = create_session()
-    table_class_name = convert_snake_to_Camel(table_name) + 'Table'
-    if table_class_name in TYPE_BIND:
-        table_class = TYPE_BIND[table_class_name]
+    class_name = cls.__name__
+    table_class_name = class_name + 'Table'
+    if table_class_name in TABLE_TYPE_BIND:
+        table_cls = TABLE_TYPE_BIND[table_class_name]
     else:
-        raise ValueError(f'can not find any evidences in globals() of {table_class_name}')
-    if not fields:
-        query = session.query(table_class)
+        create_table_class(cls)
+        table_cls = TABLE_TYPE_BIND[table_class_name]
+    if not ids:
+        outs = session.query(table_cls).all()
     else:
-        query = session.query(*[getattr(table_class, field) for field in fields])
-    cond_all = True
-    for key, val in conditions.items():
-        if not isinstance(val, list):
-            val = list(val)
-        cond_all = cond_all and getattr(table_class, key).in_(val)
+        outs = session.query(table_cls).filter(table_cls.id.in_(ids)).all()
 
-    return query.filter(cond_all).all()
-#
-#
-# def select_with_id(table_name, ids = None):
-#     if ids is None:
-#         return []
-#     if not isinstance(ids, list):
-#         ids = [ids]
-#
-#     cls = TYPE_BIND[convert_snake_to_Camel(table_name)]
-#     table_cls_name = convert_snake_to_Camel(table_name) + 'Table'
-#     if table_cls_name in TYPE_BIND.keys():
-#         table_cls = TYPE_BIND[table_cls_name]
-#     else:
-#         create_schema(TYPE_BIND[convert_snake_to_Camel(table_name)])
-#         table_cls = TYPE_BIND[table_cls_name]
-#     outs = session.query(table_cls).filter(table_cls.id.in_(ids)).all()
-#     objs = []
-#     for out in outs:
-#         kwargs = {}
-#         for key, val in out.__dict__.items():
-#             if key == 'data':
-#                 import numpy as np
-#                 kwargs.update({key: np.load(val)})
-#
-#             elif key.endswith('_id'):
-#                 val_ = select_with_id(key[:-3], ids = val)
-#                 kwargs.update({key[:-3]: val_})
-#             elif key not in kw_exception:
-#                 kwargs.update({key: val})
-#             else:
-#                 pass
-#         objs.append(cls(**kwargs))
-#
-#     if len(ids) == 1:
-#         return objs[0]
-#     else:
-#         return objs
-#
-#
-# def run_task(table_names, ids, *, labels):
-#     from .insert_object import insert_object
-#     table_name1, table_name2 = table_names
-#
-#     for id_pair in _tqdm(ids):
-#         func = select_with_id(table_name1, id_pair[0])
-#         args = select_with_id(table_name2, id_pair[1])
-#         insert_object(func(args, labels = labels), commit = True, labels = labels + ['final'])
-#
-#
-# def get_all_hash(table_name):
-#     table_cls_name = convert_snake_to_Camel(table_name) + 'Table'
-#     if table_cls_name in TYPE_BIND.keys():
-#         table_cls = TYPE_BIND[table_cls_name]
-#     else:
-#         create_schema(TYPE_BIND[convert_snake_to_Camel(table_name)])
-#         table_cls = TYPE_BIND[table_cls_name]
-#     outs = session.query(table_cls.hash_).all()
-#     return outs
-#
-#
-# def update_labels(table_name, ids, labels = [], mode = 'add'):
-#     if ids is None:
-#         return []
-#     if not isinstance(ids, list):
-#         ids = [ids]
-#
-#     table_cls_name = convert_snake_to_Camel(table_name) + 'Table'
-#     if table_cls_name in TYPE_BIND.keys():
-#         table_cls = TYPE_BIND[table_cls_name]
-#     else:
-#         create_schema(TYPE_BIND[convert_snake_to_Camel(table_name)])
-#         table_cls = TYPE_BIND[table_cls_name]
-#     outs = session.query(table_cls).filter(table_cls.id.in_(ids)).all()
-#     for out in outs:
-#         if mode == 'add':
-#             out.labels = out.labels + labels
-#         elif mode == 'new':
-#             out.labels = labels
-#         else:
-#             raise ValueError
-#     session.commit()
+    objs = []
+    for out in outs:
+        kwargs = {}
+        for key, val in out.__dict__.items():
+            if key == 'data':
+                kwargs.update({key: any_type_loader(val)})
+            elif key.endswith('_id'):
+                sub_class = cls.fields()[key[:-3]].type
+                if val is None:
+                    val_ = None
+                else:
+                    val_ = query_object_with_id(sub_class, ids = val)
+                kwargs.update({key[:-3]: val_})
+            elif key not in EXCEPTIONS:
+                kwargs.update({key: val})
+            else:
+                pass
+
+        objs.append(cls(**kwargs))
+
+    if len(ids) == 1:
+        return objs[0]
+    else:
+        return objs
+
+
+def query_id_with_filter(table_class, *, filters = []):
+    Session = sessionmaker(bind = engine)
+    session = Session()
+
+    if not filters:
+        return session.query(table_class.id).all()
+
+    query = session.query(table_class.id)
+
+    for filt in list(filters):
+        query = query.filter(filt)
+    return [id_[0] for id_ in query.all()]
+
+
+def _intersection(lst1, lst2):
+    lst3 = [value for value in lst1 if value in lst2]
+    return lst3
+
+
+def query_id_with_filter_and_labels(table_class, *, filters = [], label_filters = []):
+    ids = query_id_with_filter(table_class, filters = filters)
+    if not label_filters:
+        return ids
+    Session = sessionmaker(bind = engine)
+    session = Session()
+    outs = session.query(table_class).filter(table_class.id.in_(ids)).all()
+
+    ids_out = []
+    for out in outs:
+        if not _intersection(out.labels, label_filters):
+            continue
+        ids_out.append(out.id)
+    return ids_out
+
+
+def _query_all_hash(cls):
+    Session = sessionmaker(bind = engine)
+    session = Session()
+
+    class_name = cls.__name__
+    table_class_name = class_name + 'Table'
+    if table_class_name in TABLE_TYPE_BIND:
+        table_cls = TABLE_TYPE_BIND[table_class_name]
+    else:
+        create_table_class(cls)
+        table_cls = TABLE_TYPE_BIND[table_class_name]
+    return session.query(table_cls.id, table_cls.__hash__).all()
