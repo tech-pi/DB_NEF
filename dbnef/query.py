@@ -43,7 +43,10 @@ def query_object_with_id(cls, *, ids = None):
                 kwargs.update({key: any_type_loader(val)})
             elif key.endswith('_id'):
                 sub_class = cls.fields()[key[:-3]].type
-                val_ = query_object_with_id(sub_class, ids = val)
+                if val is None:
+                    val_ = None
+                else:
+                    val_ = query_object_with_id(sub_class, ids = val)
                 kwargs.update({key[:-3]: val_})
             elif key not in EXCEPTIONS:
                 kwargs.update({key: val})

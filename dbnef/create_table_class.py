@@ -58,7 +58,7 @@ def create_table_class(cls: type, *, commit = False):
                     sub_table_name = sub_table_class.__tablename__
                     kwargs.update(
                         {sub_table_name + '_id': Column(Integer, ForeignKey(sub_table_name + '.id'),
-                                             nullable = True)})
+                                                        nullable = True)})
                     kwargs.update({key: relationship(val.type.__name__ + 'Table')})
                 elif is_dataclass(val.type):
                     sub_table_class = create_table_class(val.type, commit = commit)
@@ -74,9 +74,8 @@ def create_table_class(cls: type, *, commit = False):
     return table_cls
 
 
-def create_table(cls: type, *, commit = False):
-    table_cls = create_table_class(cls, commit = commit)
+def create_table(cls: type):
+    table_cls = create_table_class(cls, commit = True)
 
-    if commit:
-        Base.metadata.create_all()
+    Base.metadata.create_all()
     return table_cls
