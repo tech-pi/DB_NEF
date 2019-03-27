@@ -18,39 +18,9 @@ including `dataclass` for data and `funcclass` for functions.
 `DataClass`, as well as `FuncClass`, instances `io` to `.hdf5` files are implemented in `save`
 and `load` natual modes.
 '''
-from sqlalchemy import Column, Integer, Float, String, Boolean, ForeignKey
-from sqlalchemy.dialects import postgresql
-import dataclasses
 import numpy as np
-import attr
 import typing
 
-_tiny = 1e-8
+# required py3.7 installed
+from dataclasses import is_dataclass, fields
 
-_huge = 1e8
-
-TYPE_BIND = {}
-
-
-def is_dataclass(cls):
-    try:
-        cls.fields()
-        return True
-    except:
-        return False
-
-
-table_support_type = {
-    int: int,
-    np.int64: int,
-    np.int32: int,
-    float: float,
-    np.float32: float,
-    np.float64: float,
-    bool: bool,
-    str: str,
-    np.ndarray: list,
-    typing.List[str]: list,
-    typing.List[int]: list,
-    typing.List[float]: list
-}

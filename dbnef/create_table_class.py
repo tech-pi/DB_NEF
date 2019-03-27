@@ -15,8 +15,8 @@ from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import relationship
 import numpy as np
 
-from .typing import TYPE_BIND, is_dataclass
-from .utils import convert_Camal_to_snake
+from dataclasses import is_dataclass, fields
+from .utils import convert_Camal_to_snake, TYPE_BIND
 from .config import Base, engine
 
 
@@ -28,28 +28,29 @@ def create_table_class(cls: type):
         table_name = convert_Camal_to_snake(cls.__name__)
         kwargs = {'__tablename__': table_name, 'id': Column(Integer, primary_key = True)}
 
-        for key, spec in cls.fields().items():
+        for spec in fields(cls):
+            name = spec.name
             if spec.type is int:
-                kwargs.update({key: Column(Integer)})
+                kwargs.update({name: Column(Integer)})
             elif spec.type is float:
-                kwargs.update({key: Column(Float)})
+                kwargs.update({name: Column(Float)})
             elif spec.type is bool:
-                kwargs.update({key: Column(Boolean)})
+                kwargs.update({name: Column(Boolean)})
             elif spec.type is str:
-                kwargs.update({key: Column(String)})
+                kwargs.update({name: Column(String)})
             elif spec.type is List[int]:
-                kwargs.update({key: Column(postgresql.ARRAY(Integer, dimensions = 1))})
+                kwargs.update({name: Column(postgresql.ARRAY(Integer, dimensions = 1))})
             elif spec.type is List[float]:
-                kwargs.update({key: Column(postgresql.ARRAY(Float, dimensions = 1))})
+                kwargs.update({name: Column(postgresql.ARRAY(Float, dimensions = 1))})
             elif spec.type is List[bool]:
-                kwargs.update({key: Column(postgresql.ARRAY(Boolean, dimensions = 1))})
+                kwargs.update({name: Column(postgresql.ARRAY(Boolean, dimensions = 1))})
             elif spec.type is List[str]:
-                kwargs.update({key: Column(postgresql.ARRAY(String, dimensions = 1))})
+                kwargs.update({name: Column(postgresql.ARRAY(String, dimensions = 1))})
             elif spec.type is np.ndarray:
-                kwargs.update({key: Column(String)})
+                kwargs.update({name: Column(String)})
             elif is_dataclass(spec.type):
-                kwargs.update({key + '_id': Column(Integer, ForeignKey(key + '.id'))})
-                kwargs.update({key: relationship(spec.type.__name__ + 'Table')})
+                kwargs.update({name + '_id': Column(Integer, ForeignKey(name + '.id'))})
+                kwargs.update({name: relationship(spec.type.__name__ + 'Table')})
             else:
                 raise NotImplementedError(f'type {spec.type} is not implemented yet.')
 

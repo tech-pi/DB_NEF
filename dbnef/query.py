@@ -10,7 +10,6 @@
 
 from .config import create_session
 from .utils import convert_snake_to_Camel
-from .create_table_class import create_table_class
 from sqlalchemy.inspection import _self_inspects
 from .typing import TYPE_BIND
 

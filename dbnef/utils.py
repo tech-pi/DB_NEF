@@ -150,3 +150,6 @@ def parse_table_class(table_name: str):
     else:
         raise ValueError(f'cannot find any envidence of {class_name} to do deserialization')
     return table_class
+
+
+TYPE_BIND = {}
