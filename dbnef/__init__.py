@@ -8,5 +8,10 @@
 @desc:
 '''
 from .create_table_class import create_table_class, create_table
-from .add_and_update_object import add_object_to_table, parse_dataclass_to_table_object
-from .query import select
+from .add_and_update_object import add_object_to_table
+from .query import query_id_with_filter, query_object_with_id, query_id_with_filter_and_labels, \
+    _query_all_hash
+from .update_labels import update_labels, clear_labels
+from .abstract import create_resource_table
+
+create_resource_table()
