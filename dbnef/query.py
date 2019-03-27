@@ -13,9 +13,13 @@ from .config import engine
 from .utils import TABLE_TYPE_BIND
 from .utils import any_type_loader, EXCEPTIONS
 from .create_table_class import create_table_class
+from .abstract import ResourceTable
 
 
 def query_object_with_id(cls, *, ids = None):
+    if cls.__name__.endswith('Table'):
+        raise ValueError('Use its corresponding class as argument')
+
     Session = sessionmaker(bind = engine)
     session = Session()
     if ids is None:
@@ -39,8 +43,9 @@ def query_object_with_id(cls, *, ids = None):
     for out in outs:
         kwargs = {}
         for key, val in out.__dict__.items():
-            if key == 'data':
-                kwargs.update({key: any_type_loader(val)})
+            if key == 'res_id':
+                path_ = session.query(ResourceTable.url).filter(ResourceTable.id == val).all()[0][0]
+                kwargs.update({'data': any_type_loader(path_)})
             elif key.endswith('_id'):
                 sub_class = cls.fields()[key[:-3]].type
                 if val is None:
@@ -94,17 +99,3 @@ def query_id_with_filter_and_labels(table_class, *, filters = [], label_filters 
             continue
         ids_out.append(out.id)
     return ids_out
-
-
-def _query_all_hash(cls):
-    Session = sessionmaker(bind = engine)
-    session = Session()
-
-    class_name = cls.__name__
-    table_class_name = class_name + 'Table'
-    if table_class_name in TABLE_TYPE_BIND:
-        table_cls = TABLE_TYPE_BIND[table_class_name]
-    else:
-        create_table_class(cls)
-        table_cls = TABLE_TYPE_BIND[table_class_name]
-    return session.query(table_cls.id, table_cls.__hash__).all()

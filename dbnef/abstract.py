@@ -7,23 +7,37 @@
 @date: 3/22/2019
 @desc:
 '''
-import graphene
+from sqlalchemy import Column, Integer, Float, String, Boolean
+from sqlalchemy.dialects import postgresql
+from sqlalchemy import ForeignKey
+from sqlalchemy.orm import relationship
+import typing
+from dataclasses import is_dataclass, fields
+
+from .config import Base
+from .utils import TABLE_TYPE_BIND
 
 
-class Abstract(graphene.AbstractType):
-    name: graphene.String()
-    creation_datetime: graphene.types.datetime.DateTime()
-    labels: graphene.List(graphene.String)
-    __hash__: graphene.String()
+class ResourceTable(Base):
+    __tablename__ = 'resources'
+    id = Column(Integer, primary_key = True)
+    datetime = Column(String)
+    creator = Column(String)
+    status = Column(String)
+    labels = Column(postgresql.ARRAY(String, dimensions = 1))
+    url = Column(String, nullable = False, unique = True)
+    hash_ = Column(String, nullable = False, unique = True)
 
 
-class Resource(graphene.AbstractType, Abstract):
-    pass
+def create_resource_table():
+    table_cls = ResourceTable
+    Base.metadata.create_all()
+    TABLE_TYPE_BIND.update({'ResourceTable': ResourceTable})
 
-
-class Object(graphene.AbstractType, Abstract):
-    pass
-
-
-class Task(graphene.AbstractType, Abstract):
-    pass
+    #
+    # class Object(graphene.AbstractType, Abstract):
+    #     pass
+    #
+    #
+    # class Task(graphene.AbstractType, Abstract):
+    #     pass

@@ -15,16 +15,31 @@ import time
 import hashlib
 import tqdm
 from getpass import getuser
+from dataclasses import is_dataclass as is_dataclass_official
+from dataclasses import fields as fields_official
+
 
 TABLE_TYPE_BIND = {}
 
 
 def is_dataclass(cls):
+    if is_dataclass_official(cls):
+        return True
     try:
         cls.fields()
         return True
     except:
         return False
+
+
+def fields(cls):
+    if is_dataclass_official(cls):
+        return fields_official(cls)
+    else:
+        try:
+            return list(cls.fields().values())
+        except:
+            raise ValueError
 
 
 def is_notebook():
@@ -86,10 +101,10 @@ def get_hash_of_timestamp():
 NECESSARIES = ('_sa_instance_state', 'id', 'state', 'create', 'submit', 'finish', 'depends',
                'scheduler', 'backend', 'workdir', 'id_on_backend', 'state_on_backend', 'worker',
                'script', 'inputs', 'outputs', 'fn', 'creator', 'labels', 'datetime',
-               '__hash__', 'tasks', 'data_shape', 'extend_existing', 'status')
+               'hash_', 'tasks', 'data_shape', 'extend_existing', 'status')
+
 
 EXCEPTIONS = NECESSARIES + ()
-
 
 def dict_hasher(dct: dict, exception = NECESSARIES):
     m = hashlib.sha256()
@@ -143,6 +158,12 @@ def any_type_saver(data):
         raise NotImplementedError(f'`any_saver` does not support type {type(data)} saving. ')
 
 
+def file_deleter(path_):
+    try:
+        os.remove(path_)
+    except:
+        ValueError(f'removing file at {path_} failed')
+
 def any_type_loader(path_: str):
     import numpy as np
     if path_.endswith('npy'):
@@ -169,3 +190,6 @@ def parse_table_class(table_name: str):
     else:
         raise ValueError(f'cannot find any envidence of {class_name} to do deserialization')
     return table_class
+
+
+TYPE_BIND = {}
