@@ -10,6 +10,7 @@ from .config import Base
 
 def create_table_class(cls: type):
     assert is_dataclass(cls)
+
     table_name = convert_Camal_to_snake(cls.__name__)
     table_class_name = cls.__name__ + 'Table'
     if table_class_name in TABLE_TYPE_BIND.keys():
@@ -59,6 +60,7 @@ def create_table_class(cls: type):
                 else:
                     raise NotImplementedError(f'type {spec.type} is not implemented yet.')
         kwargs.update({'hash_': Column(String, nullable = True)})
+
         table_cls = type(table_class_name, (Base,), kwargs)
         TABLE_TYPE_BIND.update({table_class_name: table_cls})
     return table_cls
@@ -66,6 +68,7 @@ def create_table_class(cls: type):
 
 def create_table(cls: type):
     table_cls = create_table_class(cls)
+
 
     Base.metadata.create_all()
     return table_cls

@@ -18,6 +18,7 @@ from getpass import getuser
 from dataclasses import is_dataclass as is_dataclass_official
 from dataclasses import fields as fields_official
 
+
 TABLE_TYPE_BIND = {}
 
 
@@ -102,8 +103,8 @@ NECESSARIES = ('_sa_instance_state', 'id', 'state', 'create', 'submit', 'finish'
                'script', 'inputs', 'outputs', 'fn', 'creator', 'labels', 'datetime',
                'hash_', 'tasks', 'data_shape', 'extend_existing', 'status')
 
-EXCEPTIONS = NECESSARIES + ()
 
+EXCEPTIONS = NECESSARIES + ()
 
 def dict_hasher(dct: dict, exception = NECESSARIES):
     m = hashlib.sha256()
@@ -162,7 +163,6 @@ def file_deleter(path_):
         os.remove(path_)
     except:
         ValueError(f'removing file at {path_} failed')
-
 
 def any_type_loader(path_: str):
     import numpy as np

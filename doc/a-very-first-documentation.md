@@ -43,6 +43,7 @@ BankAccount.fields()
 After declared a class (e.g., `Person`), we can create a table class by
 ```python
 table_class = db.create_table_class(Person)
+
 ```
 
 or create a table by 
@@ -58,6 +59,7 @@ An object can be filled into its corresponding table by
 account1 = BankAccount(np.zeros(100), 100)
 account2 = BankAccount(np.zeros(200), 200)
 account3 = BankAccount(np.zeros(100), 100)
+
 person1 = Person('123', 1, None)
 person2 = Person('231', 2, account2)
 person3 = Person('312', 3, account3)
@@ -82,6 +84,7 @@ db.add_object_to_table(person1)
 ```
 
 5. Query an object with its table name and id
+
 The default query method of an object in table is with its id. For example, 
 ```python
 objs = db.query_object_with_id(Person, ids = [1, 2])
@@ -96,6 +99,7 @@ objs
 if you want to get some objects with filters on some column in table, you need to 
 ```python
 table_class = db.create_table_class(Person)
+
 ids = db.query_id_with_filter(table_class, filters = [table_class.name == '231', table_class.id > 6, table_class.val == 2])
 print(ids)
 objs = db.query_object_with_id(Person, ids = ids)
@@ -109,6 +113,7 @@ return ids.
 This ids can be used to query its corresponding objects. 
 
 7. Filters on labels. 
+
 When filtering labels, the mechanic is kindly different. Usually, you want to find some rows in 
 table which have the labels you desired. However, the sqlalchemy doesn't support such kind of 
 filtering. So we have another filtering function, namely `query_id_with_filter_and_labels`
@@ -119,6 +124,7 @@ ids2 = db.query_id_with_filter_and_labels(table_class, filters=[], label_filters
 
 
 8. Updating labels and clear labels
+
 If you want to update the lables in some rows in a table, you need to do 
 ```python
 db.update_labels('person', ids = [5, 8], labels=['temp1'], mode = 'new')

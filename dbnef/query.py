@@ -19,6 +19,7 @@ from .abstract import ResourceTable
 def query_object_with_id(cls, *, ids = None):
     if cls.__name__.endswith('Table'):
         raise ValueError('Use its corresponding class as argument')
+
     Session = sessionmaker(bind = engine)
     session = Session()
     if ids is None:
