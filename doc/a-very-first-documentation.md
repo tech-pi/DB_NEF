@@ -87,7 +87,7 @@ db.add_object_to_table(person1)
 
 The default query method of an object in table is with its id. For example, 
 ```python
-objs = db.query_object_with_id(Person, ids = [1, 2])
+objs = db.query_object_with_id('person', ids = [1, 2], TYPE_BIND = TYPE_BIND)
 objs
 >>> [Person(name='123', val=1, bank_account=None),
  Person(name='231', val=2, bank_account=BankAccount(val=200))]
@@ -137,3 +137,16 @@ which would create / append labels on the label cell in these rows.
 
 Another useful function is 
 `clear_labels`
+
+9. Create and run task
+
+You can create a task as below and it will automatically been added to the tasks table. 
+```python
+tasks, _ = db.create_task('person-1', [], labels = ['test'], depends=[nef])
+```
+
+and run it as 
+```python
+db.run_task(1, TYPE_BIND = TYPE_BIND)
+```
+the output will be added to database automatically.

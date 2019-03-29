@@ -12,7 +12,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
 
 
-engine = create_engine('postgresql://postgres:postgres@localhost/test_database3', echo = True)
+engine = create_engine('postgresql://postgres:postgres@localhost/test_database3', echo = False)
 
 
 Session = sessionmaker(bind = engine)

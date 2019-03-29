@@ -18,7 +18,6 @@ from .utils import any_type_saver, file_hasher, file_deleter, is_dataclass, fiel
 from .create_table_class import create_table
 from .config import sessionmaker, engine
 
-
 resource_directory = './resources/'
 
 
@@ -27,7 +26,6 @@ def add_object_to_table(obj, *, labels = []):
     session = Session()
     assert is_dataclass(obj)
     table_class = create_table(obj.__class__)
-
 
     kwargs = {'datetime': time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(int(time.time())))}
     kwargs.update({'creator': getuser()})
@@ -94,4 +92,3 @@ def add_object_to_table(obj, *, labels = []):
         table_obj = table_obj_[0]
     session.close()
     return table_obj, hash_
-

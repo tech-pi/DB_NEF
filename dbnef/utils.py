@@ -13,11 +13,10 @@ import re
 import sys
 import time
 import hashlib
-import tqdm
+import tqdm as tqdm_
 from getpass import getuser
 from dataclasses import is_dataclass as is_dataclass_official
 from dataclasses import fields as fields_official
-
 
 TABLE_TYPE_BIND = {}
 
@@ -51,15 +50,15 @@ def is_notebook():
 is_ipython = is_notebook
 
 
-def _tqdm(*args, **kwargs):
+def tqdm(*args, **kwargs):
     '''same as tqdm.tqdm
     Automatically switch between `tqdm.tqdm` and `tqdm.tqdm_notebook` accoding to the runtime
     environment.
     '''
     if is_notebook():
-        return tqdm.tqdm_notebook(*args, **kwargs)
+        return tqdm_.tqdm_notebook(*args, **kwargs)
     else:
-        return tqdm.tqdm(*args, **kwargs)
+        return tqdm_.tqdm(*args, **kwargs)
 
 
 if 'Windows' in platform.system():
@@ -103,8 +102,8 @@ NECESSARIES = ('_sa_instance_state', 'id', 'state', 'create', 'submit', 'finish'
                'script', 'inputs', 'outputs', 'fn', 'creator', 'labels', 'datetime',
                'hash_', 'tasks', 'data_shape', 'extend_existing', 'status')
 
-
 EXCEPTIONS = NECESSARIES + ()
+
 
 def dict_hasher(dct: dict, exception = NECESSARIES):
     m = hashlib.sha256()
@@ -163,6 +162,7 @@ def file_deleter(path_):
         os.remove(path_)
     except:
         ValueError(f'removing file at {path_} failed')
+
 
 def any_type_loader(path_: str):
     import numpy as np

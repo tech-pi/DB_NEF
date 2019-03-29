@@ -11,12 +11,20 @@ from sqlalchemy.orm import sessionmaker
 
 from .config import engine
 from .utils import TABLE_TYPE_BIND
-from .utils import any_type_loader, EXCEPTIONS
+from .utils import any_type_loader, EXCEPTIONS, convert_snake_to_Camel, convert_Camal_to_snake
 from .create_table_class import create_table_class
 from .abstract import ResourceTable
 
 
-def query_object_with_id(cls, *, ids = None):
+def query_object_with_id(table_name, *, ids = None, TYPE_BIND = None):
+    class_name = convert_snake_to_Camel(table_name)
+    if TYPE_BIND is not None:
+        cls = TYPE_BIND[class_name]
+    elif class_name in globals():
+        cls = globals()[class_name]
+    else:
+        raise ValueError(f'cannot find any declaration of {class_name}')
+
     if cls.__name__.endswith('Table'):
         raise ValueError('Use its corresponding class as argument')
 
@@ -47,11 +55,11 @@ def query_object_with_id(cls, *, ids = None):
                 path_ = session.query(ResourceTable.url).filter(ResourceTable.id == val).all()[0][0]
                 kwargs.update({'data': any_type_loader(path_)})
             elif key.endswith('_id'):
-                sub_class = cls.fields()[key[:-3]].type
+                sub_table_name = key[:-3]
                 if val is None:
                     val_ = None
                 else:
-                    val_ = query_object_with_id(sub_class, ids = val)
+                    val_ = query_object_with_id(sub_table_name, ids = val, TYPE_BIND = TYPE_BIND)
                 kwargs.update({key[:-3]: val_})
             elif key not in EXCEPTIONS:
                 kwargs.update({key: val})

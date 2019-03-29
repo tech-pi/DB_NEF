@@ -7,12 +7,8 @@
 @date: 3/22/2019
 @desc:
 '''
-from sqlalchemy import Column, Integer, Float, String, Boolean
+from sqlalchemy import Column, Integer, String
 from sqlalchemy.dialects import postgresql
-from sqlalchemy import ForeignKey
-from sqlalchemy.orm import relationship
-import typing
-from dataclasses import is_dataclass, fields
 
 from .config import Base
 from .utils import TABLE_TYPE_BIND
@@ -34,10 +30,21 @@ def create_resource_table():
     Base.metadata.create_all()
     TABLE_TYPE_BIND.update({'ResourceTable': ResourceTable})
 
-    #
-    # class Object(graphene.AbstractType, Abstract):
-    #     pass
-    #
-    #
-    # class Task(graphene.AbstractType, Abstract):
-    #     pass
+
+class TaskTable(Base):
+    __tablename__ = 'tasks'
+    id = Column(Integer, primary_key = True)
+    datetime = Column(String)
+    creator = Column(String)
+    status = Column(String)
+    depends = Column(postgresql.ARRAY(String, dimensions = 1))
+    labels = Column(postgresql.ARRAY(String, dimensions = 1))
+    hash_ = Column(String, nullable = False, unique = True)
+    function = Column(String)
+    arguments = Column(postgresql.ARRAY(String, dimensions = 1))
+
+
+def create_task_table():
+    table_cls = TaskTable
+    Base.metadata.create_all()
+    TABLE_TYPE_BIND.update({'TaskTable': TaskTable})
