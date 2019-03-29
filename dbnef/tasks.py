@@ -13,7 +13,7 @@ from getpass import getuser
 import time
 from .config import sessionmaker, engine
 from .abstract import TaskTable
-from .utils import convert_snake_to_Camel, tqdm
+from .utils import convert_snake_to_Camel, tqdm, convert_Camal_to_snake
 from .query import query_object_with_id
 from .add_and_update_object import add_object_to_table
 
@@ -38,7 +38,7 @@ def create_task(function = '', arguments = [], *, labels = [], depends = []):
 
     depends_ = []
     for dep in depends:
-        depends_.append(dep.__name__ + dep.__version__)
+        depends_.append(dep.__name__ + '==' + dep.__version__)
     depends_.sort()
     kwargs.update({'depends': depends_})
     m.update(str(depends_).encode('utf-8'))
@@ -81,6 +81,8 @@ def run_task(ids = None, *, TYPE_BIND = None):
 
         out = function(*args)
         outs.append(out)
-        add_object_to_table(out, labels = task.labels)
+        table_out = add_object_to_table(out, labels = task.labels)
+        task.output = table_out[0].__tablename__ + '-' + str(table_out[0].id)
+    session.commit()
 
     return outs

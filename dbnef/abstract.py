@@ -42,6 +42,7 @@ class TaskTable(Base):
     hash_ = Column(String, nullable = False, unique = True)
     function = Column(String)
     arguments = Column(postgresql.ARRAY(String, dimensions = 1))
+    output = Column(String)
 
 
 def create_task_table():
