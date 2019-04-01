@@ -25,7 +25,8 @@ resource_directory = './resources/'
 def add_object_to_table(obj, *, labels = []):
     Session = sessionmaker(bind = engine)
     session = Session()
-    assert is_dataclass(obj)
+    if not is_dataclass(obj):
+        raise ValueError(f'Only support dataclass saving to database, but got a {obj.__class__}')
     table_class = create_table(obj.__class__)
 
     kwargs = {'datetime': time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(int(time.time())))}
@@ -62,12 +63,12 @@ def add_object_to_table(obj, *, labels = []):
                 val = list(val)
             m.update(str(val).encode('utf-8'))
         elif spec.type is np.ndarray or spec.type is sparse.coo.coo_matrix:
-            from .abstract import ResourceTable
+            from .abstract import ResourcesTable
             path_ = any_type_saver(getattr(obj, key))
             hash_ = file_hasher(path_)
-            val_ = session.query(ResourceTable).filter(ResourceTable.hash_ == hash_).all()
+            val_ = session.query(ResourcesTable).filter(ResourcesTable.hash_ == hash_).all()
             if not val_:
-                val = ResourceTable(**{'datetime': kwargs['datetime'],
+                val = ResourcesTable(**{'datetime': kwargs['datetime'],
                                        'creator': kwargs['creator'],
                                        'labels': kwargs['labels'],
                                        'status': kwargs['status'],

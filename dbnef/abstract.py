@@ -14,7 +14,7 @@ from .config import Base
 from .utils import TABLE_TYPE_BIND
 
 
-class ResourceTable(Base):
+class ResourcesTable(Base):
     __tablename__ = 'resources'
     id = Column(Integer, primary_key = True)
     datetime = Column(String)
@@ -26,12 +26,12 @@ class ResourceTable(Base):
 
 
 def create_resource_table():
-    table_cls = ResourceTable
+    table_cls = ResourcesTable
     Base.metadata.create_all()
-    TABLE_TYPE_BIND.update({'ResourceTable': ResourceTable})
+    TABLE_TYPE_BIND.update({'ResourcesTable': ResourcesTable})
 
 
-class TaskTable(Base):
+class TasksTable(Base):
     __tablename__ = 'tasks'
     id = Column(Integer, primary_key = True)
     datetime = Column(String)
@@ -46,6 +46,8 @@ class TaskTable(Base):
 
 
 def create_task_table():
-    table_cls = TaskTable
+    table_cls = TasksTable
     Base.metadata.create_all()
-    TABLE_TYPE_BIND.update({'TaskTable': TaskTable})
+    TABLE_TYPE_BIND.update({'TasksTable': TasksTable})
+
+

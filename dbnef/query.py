@@ -13,7 +13,7 @@ from .config import engine
 from .utils import TABLE_TYPE_BIND
 from .utils import any_type_loader, EXCEPTIONS, convert_snake_to_Camel, convert_Camal_to_snake
 from .create_table_class import create_table_class
-from .abstract import ResourceTable
+from .abstract import ResourcesTable
 
 
 def query_object_with_id(table_name, *, ids = None, TYPE_BIND = None):
@@ -35,7 +35,6 @@ def query_object_with_id(table_name, *, ids = None, TYPE_BIND = None):
     if not isinstance(ids, list):
         ids = [ids]
 
-    class_name = cls.__name__
     table_class_name = class_name + 'Table'
     if table_class_name in TABLE_TYPE_BIND:
         table_cls = TABLE_TYPE_BIND[table_class_name]
@@ -52,7 +51,7 @@ def query_object_with_id(table_name, *, ids = None, TYPE_BIND = None):
         kwargs = {}
         for key, val in out.__dict__.items():
             if key == 'res_id':
-                path_ = session.query(ResourceTable.url).filter(ResourceTable.id == val).all()[0][0]
+                path_ = session.query(ResourcesTable.url).filter(ResourcesTable.id == val).all()[0][0]
                 kwargs.update({'data': any_type_loader(path_)})
             elif key.endswith('_id'):
                 sub_table_name = key[:-3]
@@ -72,6 +71,62 @@ def query_object_with_id(table_name, *, ids = None, TYPE_BIND = None):
         return objs[0]
     else:
         return objs
+
+
+def query_last_id(table_name):
+    Session = sessionmaker(bind = engine)
+    session = Session()
+
+    table_class_name = convert_snake_to_Camel(table_name) + 'Table'
+    if table_class_name in TABLE_TYPE_BIND:
+        table_cls = TABLE_TYPE_BIND[table_class_name]
+    else:
+        raise ValueError(f'cannot find table class {table_class_name} in TABLE_TYPE_BIND')
+    out = session.query(table_cls.id).order_by(table_cls.id.desc()).first()
+    return int(out[0])
+
+
+def query_last_object(table_name, *, TYPE_BIND = None):
+    class_name = convert_snake_to_Camel(table_name)
+    if TYPE_BIND is not None:
+        cls = TYPE_BIND[class_name]
+    elif class_name in globals():
+        cls = globals()[class_name]
+    else:
+        raise ValueError(f'cannot find any declaration of {class_name}')
+
+    if cls.__name__.endswith('Table'):
+        raise ValueError('Use its corresponding class as argument')
+
+    Session = sessionmaker(bind = engine)
+    session = Session()
+
+    table_class_name = class_name + 'Table'
+    if table_class_name in TABLE_TYPE_BIND:
+        table_cls = TABLE_TYPE_BIND[table_class_name]
+    else:
+        create_table_class(cls)
+        table_cls = TABLE_TYPE_BIND[table_class_name]
+    out = session.query(table_cls).order_by(table_cls.id.desc()).first()
+
+    kwargs = {}
+    for key, val in out.__dict__.items():
+        if key == 'res_id':
+            path_ = session.query(ResourcesTable.url).filter(ResourcesTable.id == val).all()[0][0]
+            kwargs.update({'data': any_type_loader(path_)})
+        elif key.endswith('_id'):
+            sub_table_name = key[:-3]
+            if val is None:
+                val_ = None
+            else:
+                val_ = query_object_with_id(sub_table_name, ids = val, TYPE_BIND = TYPE_BIND)
+            kwargs.update({key[:-3]: val_})
+        elif key not in EXCEPTIONS:
+            kwargs.update({key: val})
+        else:
+            pass
+
+    return cls(**kwargs)
 
 
 def query_id_with_filter(table_class, *, filters = []):

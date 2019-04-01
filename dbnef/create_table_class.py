@@ -26,7 +26,7 @@ def create_table_class(cls: type):
             key = spec.name
             if key == 'data':
                 kwargs.update({'res_id': Column(Integer, ForeignKey('resources.id'))})
-                kwargs.update({key: relationship('ResourceTable')})
+                kwargs.update({key: relationship('ResourcesTable')})
             else:
                 if spec.type is int:
                     kwargs.update({key: Column(Integer, nullable = True)})

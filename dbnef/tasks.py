@@ -12,7 +12,7 @@ import hashlib
 from getpass import getuser
 import time
 from .config import sessionmaker, engine
-from .abstract import TaskTable
+from .abstract import TasksTable
 from .utils import convert_snake_to_Camel, tqdm, convert_Camal_to_snake
 from .query import query_object_with_id
 from .add_and_update_object import add_object_to_table
@@ -45,14 +45,14 @@ def create_task(function = '', arguments = [], *, labels = [], depends = []):
 
     hash_ = m.hexdigest()
     kwargs.update({'hash_': hash_})
-    table_obj = TaskTable(**kwargs)
-    table_obj_ = session.query(TaskTable).filter(TaskTable.hash_ == hash_).all()
+    table_obj = TasksTable(**kwargs)
+    table_obj_ = session.query(TasksTable).filter(TasksTable.hash_ == hash_).all()
     if not table_obj_:
         session.add(table_obj)
         session.commit()
     else:
         print(f'Warning: the inserting task has already been inserted. locate at ' +
-              f'Task/id={table_obj_[0].id}')
+              f'Tasks/id={table_obj_[0].id}')
         table_obj = table_obj_[0]
     session.close()
     return table_obj, hash_
@@ -66,7 +66,7 @@ def run_task(ids = None, *, TYPE_BIND = None):
 
     Session = sessionmaker(bind = engine)
     session = Session()
-    tasks = session.query(TaskTable).filter(TaskTable.id.in_(ids)).all()
+    tasks = session.query(TasksTable).filter(TasksTable.id.in_(ids)).all()
     outs = []
     for task in tqdm(tasks):
         if task.output is not None:
