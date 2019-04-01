@@ -11,9 +11,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
 
-
-engine = create_engine('postgresql://postgres:postgres@localhost/test_database3', echo = False)
-
+engine = create_engine('postgresql://postgres:postgres@localhost/pitech_db', echo = False)
 
 Session = sessionmaker(bind = engine)
 session = Session()

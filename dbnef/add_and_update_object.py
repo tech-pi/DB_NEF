@@ -10,6 +10,7 @@
 
 import hashlib
 import numpy as np
+from scipy import sparse
 from typing import List
 from getpass import getuser
 import time
@@ -51,9 +52,16 @@ def add_object_to_table(obj, *, labels = []):
             val = str(getattr(obj, key))
             m.update(str(val).encode('utf-8'))
         elif spec.type in (List[int], List[float], List[str], List[bool], list):
-            val = list(getattr(obj, key))
+            val = getattr(obj, key)
+            if isinstance(val, np.ndarray):
+                if val.dtype in (np.int32, np.int64):
+                    val = val.astype(int).tolist()
+                elif val.dtype in (np.float32, np.float64):
+                    val = val.astype(float).tolist()
+            else:
+                val = list(val)
             m.update(str(val).encode('utf-8'))
-        elif spec.type is np.ndarray:
+        elif spec.type is np.ndarray or spec.type is sparse.coo.coo_matrix:
             from .abstract import ResourceTable
             path_ = any_type_saver(getattr(obj, key))
             hash_ = file_hasher(path_)
@@ -73,11 +81,15 @@ def add_object_to_table(obj, *, labels = []):
                     f'Warning: the inserting resource has already been inserted. locate at {val.id}')
             m.update(path_.encode('utf-8'))
         elif is_dataclass(spec.type):
-            val, hash__ = add_object_to_table(getattr(obj, key), labels = labels)
+            val, hash__, _ = add_object_to_table(getattr(obj, key), labels = labels)
             m.update(hash__.encode('utf-8'))
         else:
             raise NotImplementedError(f'type {spec.type} is not implemented yet.')
 
+        if isinstance(val, (np.int32, np.int64)):
+            val = int(val)
+        elif isinstance(val, (np.float32, np.float64)):
+            val = float(val)
         kwargs.update({key: val})
     hash_ = m.hexdigest()
     kwargs.update({'hash_': hash_})
@@ -86,9 +98,11 @@ def add_object_to_table(obj, *, labels = []):
     if not table_obj_:
         session.add(table_obj)
         session.commit()
+        id_ = session.query(table_class.id).all()[-1][0]
     else:
         print(f'Warning: the inserting object has already been inserted. locate at ' +
               f'{convert_Camal_to_snake(obj.__class__.__name__)}/id={table_obj_[0].id}')
         table_obj = table_obj_[0]
+        id_ = table_obj.id
     session.close()
-    return table_obj, hash_
+    return table_obj, hash_, id_

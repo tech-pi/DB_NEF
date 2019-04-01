@@ -69,20 +69,29 @@ def run_task(ids = None, *, TYPE_BIND = None):
     tasks = session.query(TaskTable).filter(TaskTable.id.in_(ids)).all()
     outs = []
     for task in tqdm(tasks):
-        func_table_class, func_id = task.function.split('-')
+        if task.output is not None:
+            out_table_name, out_id = task.output.split('-')
+            outs.append(query_object_with_id(out_table_name, out_id, TYPE_BIND = TYPE_BIND))
+            continue
+
+        func_table_name, func_id = task.function.split('-')
         func_id = int(func_id)
-        function = query_object_with_id(func_table_class, ids = func_id, TYPE_BIND = TYPE_BIND)
+        function = query_object_with_id(func_table_name, ids = func_id, TYPE_BIND = TYPE_BIND)
 
         args = []
         for arg in task.arguments:
-            arg_table_class, arg_id = arg.split('-')
-            arg_id = int(func_id)
-            args.append(query_object_with_id(arg_table_class, ids = arg_id, TYPE_BIND = TYPE_BIND))
+            arg_table_name, arg_id = arg.split('-')
+            arg_id = int(arg_id)
+            arg = query_object_with_id(arg_table_name, ids = arg_id, TYPE_BIND = TYPE_BIND)
+            args.append(arg)
 
         out = function(*args)
         outs.append(out)
-        table_out = add_object_to_table(out, labels = task.labels)
-        task.output = table_out[0].__tablename__ + '-' + str(table_out[0].id)
+        table_out, hash_, id_ = add_object_to_table(out, labels = task.labels)
+        task.output = convert_Camal_to_snake(out.__class__.__name__) + '-' + str(id_)
     session.commit()
 
-    return outs
+    if len(outs) == 1:
+        return outs[0]
+    else:
+        return outs

@@ -148,10 +148,16 @@ def get_username():
 
 def any_type_saver(data):
     import numpy as np
+    from scipy import sparse
     if isinstance(data, np.ndarray):
         _path = get_hash_of_timestamp()
         path = resource_directory + _path + '.npy'
         np.save(path, data)
+        return path
+    elif isinstance(data, sparse.coo.coo_matrix):
+        _path = get_hash_of_timestamp()
+        path = resource_directory + _path + '.npz'
+        sparse.save_npz(path, data)
         return path
     else:
         raise NotImplementedError(f'`any_saver` does not support type {type(data)} saving. ')
@@ -166,8 +172,11 @@ def file_deleter(path_):
 
 def any_type_loader(path_: str):
     import numpy as np
+    from scipy import sparse
     if path_.endswith('npy'):
         return np.load(path_)
+    elif path_.endswith('npz'):
+        return sparse.load_npz(path_)
     else:
         raise NotImplementedError(f'`any_type_loader` does not {path_} loading. ')
 
