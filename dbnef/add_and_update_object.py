@@ -22,7 +22,7 @@ from .config import sessionmaker, engine
 resource_directory = './resources/'
 
 
-def add_object_to_table(obj, *, labels = []):
+def add_object_to_table(obj, *, labels = [], creator = None):
     Session = sessionmaker(bind = engine)
     session = Session()
     if not is_dataclass(obj):
@@ -30,7 +30,10 @@ def add_object_to_table(obj, *, labels = []):
     table_class = create_table(obj.__class__)
 
     kwargs = {'datetime': time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(int(time.time())))}
-    kwargs.update({'creator': getuser()})
+    if creator is None:
+        kwargs.update({'creator': getuser()})
+    else:
+        kwargs.update({'creator': creator})
     kwargs.update({'labels': labels})
     kwargs.update({'status': 'READY'})
     m = hashlib.sha256()
@@ -69,10 +72,10 @@ def add_object_to_table(obj, *, labels = []):
             val_ = session.query(ResourcesTable).filter(ResourcesTable.hash_ == hash_).all()
             if not val_:
                 val = ResourcesTable(**{'datetime': kwargs['datetime'],
-                                       'creator': kwargs['creator'],
-                                       'labels': kwargs['labels'],
-                                       'status': kwargs['status'],
-                                       'url': path_, 'hash_': hash_})
+                                        'creator': kwargs['creator'],
+                                        'labels': kwargs['labels'],
+                                        'status': kwargs['status'],
+                                        'url': path_, 'hash_': hash_})
                 session.add(val)
             else:
                 file_deleter(path_)
