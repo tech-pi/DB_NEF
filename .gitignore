@@ -108,6 +108,7 @@ venv.bak/
 
 #hdf5 files
 *.h5
+*.hdf5
 
 # temporal folder
 tmp
@@ -127,3 +128,7 @@ release.sh
 
 # source directory
 sources
+
+# python data files
+*.npy
+*.npz
