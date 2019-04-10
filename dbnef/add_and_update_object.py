@@ -3,21 +3,23 @@
 @author: Minghao Guo
 @contact: mh.guo0111@gmail.com
 @software: srf_ct
-@file: add_and_update_object.py
+@file: add.py
 @date: 3/12/2019
 @desc:
 '''
 
 import hashlib
+import time
+from getpass import getuser
+from typing import List
+
 import numpy as np
 from scipy import sparse
-from typing import List
-from getpass import getuser
-import time
+
+from .config import sessionmaker, engine
+from .create_table_class import create_table
 from .utils import any_type_saver, file_hasher, file_deleter, is_dataclass, fields, \
     convert_Camal_to_snake
-from .create_table_class import create_table
-from .config import sessionmaker, engine
 
 resource_directory = './resources/'
 

@@ -7,16 +7,17 @@
 @date: 3/15/2019
 @desc:
 '''
+import hashlib
 import os
 import platform
 import re
 import sys
 import time
-import hashlib
-import tqdm as tqdm_
-from getpass import getuser
-from dataclasses import is_dataclass as is_dataclass_official
 from dataclasses import fields as fields_official
+from dataclasses import is_dataclass as is_dataclass_official
+from getpass import getuser
+
+import tqdm as tqdm_
 
 TABLE_TYPE_BIND = {}
 
@@ -69,6 +70,34 @@ else:
 resource_directory = os.path.abspath(os.path.dirname(os.path.abspath(__file__))) + separator + \
                      'resources' + separator
 
+schema_directory = os.path.abspath(os.path.dirname(os.path.abspath(__file__))) + separator + \
+                   'schemas' + separator
+
+
+def load_schema(path = schema_directory + 'full_schema.json'):
+    import json
+    with open(path, 'r') as fin:
+        return json.load(fin)
+
+
+def append_schema(dct: dict, schema: dict = None, path = schema_directory + 'full_schema.json'):
+    if schema is None:
+        import json
+        with open(path, 'r') as fin:
+            schema = json.load(fin)
+    from copy import copy
+    schema = copy(schema)
+    if isinstance(dct, type):
+        dct = dct.dumps(verbose = True)
+
+    for key in dct.keys():
+        if key in schema:
+            print(f"Warning('key {key} is duplicated')")
+            del dct[key]
+    else:
+        schema.update(dct)
+    return schema
+
 
 def convert_Camal_to_snake(name):
     s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
@@ -97,7 +126,7 @@ def get_hash_of_timestamp():
     return m.hexdigest()
 
 
-NECESSARIES = ('_sa_instance_state', 'id', 'state', 'create', 'submit', 'finish', 'depends',
+NECESSARIES = ('_sa_instance_state', 'id', 'state', 'add', 'submit', 'finish', 'depends',
                'scheduler', 'backend', 'workdir', 'id_on_backend', 'state_on_backend', 'worker',
                'script', 'inputs', 'outputs', 'fn', 'creator', 'labels', 'datetime',
                'hash_', 'tasks', 'data_shape', 'extend_existing', 'status')
