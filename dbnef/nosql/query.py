@@ -7,6 +7,7 @@
 @date: 3/13/2019
 @desc:
 '''
+import pandas as pd
 from sqlalchemy.orm import sessionmaker
 
 from dbnef.config import engine
@@ -79,3 +80,9 @@ def query(filters: dict = None):
     if filters is None:
         return {}
     return query_with_hash(search(filters))
+
+
+def write_to_pandas(filters: dict):
+    dct = query(filters)
+    data = [dct_ for dct_ in dct.values()]
+    return pd.DataFrame(data)
