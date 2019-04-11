@@ -10,5 +10,5 @@
 from .add import add
 from .create_nosql_table import create_nosql_table, NosqlTable
 from .delete import delete_with_hash, delete, clear_nosql_table
-from .query import query_with_hash, search, query, write_to_pandas
+from .query import query_with_hash, search, query, write_to_pandas, class_table_monitor
 from .update import update_with_hashes, update
