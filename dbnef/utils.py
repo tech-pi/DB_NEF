@@ -7,18 +7,28 @@
 @date: 3/15/2019
 @desc:
 '''
+import hashlib
 import os
 import platform
 import re
 import sys
 import time
-import hashlib
-import tqdm as tqdm_
-from getpass import getuser
-from dataclasses import is_dataclass as is_dataclass_official
 from dataclasses import fields as fields_official
+from dataclasses import is_dataclass as is_dataclass_official
+from getpass import getuser
+
+import tqdm as tqdm_
 
 TABLE_TYPE_BIND = {}
+
+if 'Windows' in platform.system():
+    separator = '\\'
+else:
+    separator = '/'
+
+DATABASE_PATH = os.environ['HOME'] + separator + 'Database_nef' + separator
+RESOURCE_PATH = DATABASE_PATH + 'resources' + separator
+SCHEMA_PATH = DATABASE_PATH + 'schemas' + separator
 
 
 def is_dataclass(cls):
@@ -61,13 +71,29 @@ def tqdm(*args, **kwargs):
         return tqdm_.tqdm(*args, **kwargs)
 
 
-if 'Windows' in platform.system():
-    separator = '\\'
-else:
-    separator = '/'
+def load_schema(path = SCHEMA_PATH + 'full_schema.json'):
+    import json
+    with open(path, 'r') as fin:
+        return json.load(fin)
 
-resource_directory = os.path.abspath(os.path.dirname(os.path.abspath(__file__))) + separator + \
-                     'resources' + separator
+
+def append_schema(dct: dict, schema: dict = None, path = SCHEMA_PATH + 'full_schema.json'):
+    if schema is None:
+        import json
+        with open(path, 'r') as fin:
+            schema = json.load(fin)
+    from copy import copy
+    schema = copy(schema)
+    if isinstance(dct, type):
+        dct = dct.dumps(verbose = True)
+
+    for key in dct.keys():
+        if key in schema:
+            print(f"Warning('key {key} is duplicated')")
+            del dct[key]
+    else:
+        schema.update(dct)
+    return schema
 
 
 def convert_Camal_to_snake(name):
@@ -97,7 +123,7 @@ def get_hash_of_timestamp():
     return m.hexdigest()
 
 
-NECESSARIES = ('_sa_instance_state', 'id', 'state', 'create', 'submit', 'finish', 'depends',
+NECESSARIES = ('_sa_instance_state', 'id', 'state', 'add', 'submit', 'finish', 'depends',
                'scheduler', 'backend', 'workdir', 'id_on_backend', 'state_on_backend', 'worker',
                'script', 'inputs', 'outputs', 'fn', 'creator', 'labels', 'datetime',
                'hash_', 'tasks', 'data_shape', 'extend_existing', 'status')
@@ -151,12 +177,12 @@ def any_type_saver(data):
     from scipy import sparse
     if isinstance(data, np.ndarray):
         _path = get_hash_of_timestamp()
-        path = resource_directory + _path + '.npy'
+        path = RESOURCE_PATH + _path + '.npy'
         np.save(path, data)
         return path
     elif isinstance(data, sparse.coo.coo_matrix):
         _path = get_hash_of_timestamp()
-        path = resource_directory + _path + '.npz'
+        path = RESOURCE_PATH + _path + '.npz'
         sparse.save_npz(path, data)
         return path
     else:
@@ -202,3 +228,17 @@ def parse_table_class(table_name: str):
 
 
 TYPE_BIND = {}
+
+import socket
+
+
+def get_ip():
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(('www.baidu.com', 0))
+        ip = s.getsockname()[0]
+    except:
+        ip = "x.x.x.x"
+    finally:
+        s.close()
+    return ip
