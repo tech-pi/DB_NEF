@@ -113,35 +113,15 @@ def add_dicts(dcts: dict, *, kw: dict = {}):
     for key_, dct in dcts.items():
         assert 'classname' in dct
         m = hashlib.sha256()
-        kwargs = {}
-        for key, spec in dct.items():
-            if getattr(dct, key) is None:
-                val = None
-            elif key == 'data':
-                import os
-                path_ = any_type_saver(getattr(dct, key))  # TODO should be take away
-                ext = os.path.splitext(path_)
-                val = get_ip() + ':' + RESOURCE_PATH + file_hasher(path_) + ext[1]
-                new_path = val.split(':')[1]
-                if os.path.isfile(new_path):
-                    file_deleter(path_)
-                else:
-                    os.rename(path_, new_path)
-                m.update(val.encode('utf-8'))
-            elif spec[0] in BASIC_TYPE_BIND:
-                val = _to_string(getattr(dct, key))
-                m.update(val.encode('utf-8'))
-            else:
-                val = add_dicts({'temp': getattr(dct, key)})['temp']
-                m.update(val.encode('utf-8'))
-
-            kwargs.update({key: val})
+        kwargs = dct
+        for key, val in kwargs.items():
+            val = _to_string(val)
+            m.update(val.encode('utf-8'))
         hash_ = 'sha256:' + m.hexdigest()
 
         ''' hash check '''
         ans = session.query(NosqlTable.hash).filter(NosqlTable.hash == hash_).all()
         if not ans:
-            class_name_obj = [NosqlTable(hash = hash_, key = 'classname', val = dct['class_name'])]
             val_objs = [NosqlTable(hash = hash_, key = key, val = val) for key, val in
                         kwargs.items()]
             kw_objs = []
@@ -153,7 +133,7 @@ def add_dicts(dcts: dict, *, kw: dict = {}):
                     kw_objs += [NosqlTable(hash = hash_, key = k, val = v_) for v_ in v]
                 else:
                     kw_objs += [NosqlTable(hash = hash_, key = k, val = v)]
-            session.add_all(class_name_obj + val_objs + kw_objs)
+            session.add_all(val_objs + kw_objs)
             session.commit()
         else:
             pass

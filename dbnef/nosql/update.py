@@ -19,10 +19,10 @@ def update_with_hashes(hsh: str = None, *, kw: dict = None, mode = 'new', schema
     return 1
 
 
-def update(filters: dict = None, *, kw: dict = None, schema_check = True):
+def update(filters: dict = None, *, kw: dict = None, mode = 'new', schema_check = True):
     if filters is None:
         return 0
     hashes = search(filters)
     for hsh in hashes:
-        update_with_hashes(hsh, kw = kw, schema_check = schema_check)
+        update_with_hashes(hsh, kw = kw, mode = mode, schema_check = schema_check)
     return 1
