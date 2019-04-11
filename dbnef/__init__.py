@@ -7,6 +7,7 @@
 @date: 3/15/2019
 @desc:
 '''
+from . import utils
 from .add_and_update_object import add_object_to_table
 from .create_table_class import create_table_class, create_table
 from .nosql import NosqlTable

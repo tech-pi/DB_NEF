@@ -132,7 +132,7 @@ def add_dicts(dcts: dict, *, kw: dict = {}):
                 val = _to_string(getattr(dct, key))
                 m.update(val.encode('utf-8'))
             else:
-                val = add_objects(getattr(dct, key))[0]
+                val = add_dicts({'temp': getattr(dct, key)})['temp']
                 m.update(val.encode('utf-8'))
 
             kwargs.update({key: val})
@@ -141,7 +141,7 @@ def add_dicts(dcts: dict, *, kw: dict = {}):
         ''' hash check '''
         ans = session.query(NosqlTable.hash).filter(NosqlTable.hash == hash_).all()
         if not ans:
-            class_name_obj = [NosqlTable(hash = hash_, key = 'classname', val = class_name)]
+            class_name_obj = [NosqlTable(hash = hash_, key = 'classname', val = dct['class_name'])]
             val_objs = [NosqlTable(hash = hash_, key = key, val = val) for key, val in
                         kwargs.items()]
             kw_objs = []

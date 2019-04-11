@@ -21,6 +21,15 @@ import tqdm as tqdm_
 
 TABLE_TYPE_BIND = {}
 
+if 'Windows' in platform.system():
+    separator = '\\'
+else:
+    separator = '/'
+
+DATABASE_PATH = os.environ['HOME'] + separator + 'Database_nef' + separator
+RESOURCE_PATH = DATABASE_PATH + 'resources' + separator
+SCHEMA_PATH = DATABASE_PATH + 'schemas' + separator
+
 
 def is_dataclass(cls):
     if is_dataclass_official(cls):
@@ -62,25 +71,13 @@ def tqdm(*args, **kwargs):
         return tqdm_.tqdm(*args, **kwargs)
 
 
-if 'Windows' in platform.system():
-    separator = '\\'
-else:
-    separator = '/'
-
-resource_directory = os.path.abspath(os.path.dirname(os.path.abspath(__file__))) + separator + \
-                     'resources' + separator
-
-schema_directory = os.path.abspath(os.path.dirname(os.path.abspath(__file__))) + separator + \
-                   'schemas' + separator
-
-
-def load_schema(path = schema_directory + 'full_schema.json'):
+def load_schema(path = SCHEMA_PATH + 'full_schema.json'):
     import json
     with open(path, 'r') as fin:
         return json.load(fin)
 
 
-def append_schema(dct: dict, schema: dict = None, path = schema_directory + 'full_schema.json'):
+def append_schema(dct: dict, schema: dict = None, path = SCHEMA_PATH + 'full_schema.json'):
     if schema is None:
         import json
         with open(path, 'r') as fin:
@@ -180,12 +177,12 @@ def any_type_saver(data):
     from scipy import sparse
     if isinstance(data, np.ndarray):
         _path = get_hash_of_timestamp()
-        path = resource_directory + _path + '.npy'
+        path = RESOURCE_PATH + _path + '.npy'
         np.save(path, data)
         return path
     elif isinstance(data, sparse.coo.coo_matrix):
         _path = get_hash_of_timestamp()
-        path = resource_directory + _path + '.npz'
+        path = RESOURCE_PATH + _path + '.npz'
         sparse.save_npz(path, data)
         return path
     else:
