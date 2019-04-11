@@ -103,17 +103,20 @@ def add(objs, *, kw: dict = {}):
     return out_hash
 
 
-def add_keywords(hash_, *, kw: dict = {}, schema_key_check = False):
+def add_keywords(hash_, *, kw: dict = {}, schema_check = True):
     Session = sessionmaker(bind = engine)
     session = Session()
-    if schema_key_check:
-        class_name = session.query(NosqlTable.val).filter(NosqlTable.key == 'classname').get(0)
+    if schema_check:
+        class_name = session.query(NosqlTable.val).filter(NosqlTable.key == 'classname',
+                                                          NosqlTable.hash == hash_).all()[0][0]
         schema_keys = list(schema_dict[class_name].keys())
     else:
         schema_keys = []
     kw_objs = []
     for k, v in kw.items():
         if k in schema_keys:
+            continue
+        if k == 'classname':
             continue
         if isinstance(v, list):
             kw_objs += [NosqlTable(hash = hash_, key = k, val = v_) for v_ in v]
