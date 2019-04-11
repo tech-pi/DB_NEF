@@ -56,3 +56,14 @@ def delete(filters: dict = None, fields: list = [], schema_check = True):
     for hsh in hashes:
         delete_with_hash(hsh, fields = fields, schema_check = schema_check)
     return 1
+
+
+def clear_nosql_table(*, pw: str = None):
+    if not pw == 'nb408':
+        return 0
+    Session = sessionmaker(bind = engine)
+    session = Session()
+    session.query(NosqlTable).delete()
+    session.commit()
+    session.close()
+    return 1
