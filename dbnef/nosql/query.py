@@ -67,7 +67,9 @@ def search(filters: dict = None):
                 [getattr(NosqlTable, 'key') == key, or_(getattr(NosqlTable, 'val').in_(val),
                                                         getattr(NosqlTable, 'val').is_(None))])
 
-    return list({out[0] for out in session.query(NosqlTable.hash).filter(*cond).all()})
+    out = list({out[0] for out in session.query(NosqlTable.hash).filter(*cond).all()})
+    session.close()
+    return out
 
 
 def query_fields(filters: dict = None, *, fields = None):
@@ -86,3 +88,23 @@ def write_to_pandas(filters: dict):
     dct = query(filters)
     data = [dct_ for dct_ in dct.values()]
     return pd.DataFrame(data)
+
+
+def class_table_monitor(classname, *, schema = None):
+    if schema is None:
+        from dbnef.utils import load_schema
+        schema = load_schema()
+
+    if classname in schema:
+        pass
+    else:
+        return write_to_pandas({'classname': classname})
+
+
+def _query_field_names(hash_: str):
+    Session = sessionmaker(bind = engine)
+    session = Session()
+    fieldnames = [out[0] for out in session.query(NosqlTable.key).filter(NosqlTable.hash ==
+                                                                         hash_).all()]
+    session.close()
+    return fieldnames
