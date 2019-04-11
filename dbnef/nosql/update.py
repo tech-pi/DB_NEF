@@ -1,39 +1,28 @@
-# encoding: utf-8
-'''
-@author: Minghao Guo
-@contact: mh.guo0111@gmail.com
-@software: srf_ct
-@file: update.py
-@date: 4/10/2019
-@desc:
-'''
-# encoding: utf-8
-'''
-@author: Minghao Guo
-@contact: mh.guo0111@gmail.com
-@software: srf_ct
-@file: update_labels.py
-@date: 3/25/2019
-@desc:
-'''
+from dbnef.utils import load_schema
 from .add import add_keywords
 from .delete import delete_with_hash
 from .query import search
 
+schema_dict = load_schema()
 
-def update_with_hashes(hsh: str = None, *, kw: dict = None):
+
+def update_with_hashes(hsh: str = None, *, kw: dict = None, mode = 'new', schema_check = True):
     if hsh is None or kw is None:
         return 0
-
-    delete_with_hash(hsh, fields = list(kw.keys()))
-    add_keywords(hsh, kw = kw)
+    if mode == 'new':
+        delete_with_hash(hsh, fields = list(kw.keys()), schema_check = schema_check)
+        add_keywords(hsh, kw = kw, schema_check = schema_check)
+    elif mode == 'add':
+        add_keywords(hsh, kw = kw, schema_check = schema_check)
+    else:
+        raise NotImplementedError
     return 1
 
 
-def update(filters: dict = None, *, kw: dict = None):
+def update(filters: dict = None, *, kw: dict = None, schema_check = True):
     if filters is None:
         return 0
     hashes = search(filters)
     for hsh in hashes:
-        update_with_hashes(hsh, kw = kw)
+        update_with_hashes(hsh, kw = kw, schema_check = schema_check)
     return 1
