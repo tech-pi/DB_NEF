@@ -9,19 +9,35 @@
 '''
 
 import hashlib
+import typing
+
+import numpy as np
 
 from dbnef.config import sessionmaker, engine
 from dbnef.utils import any_type_saver, file_hasher, file_deleter, resource_directory, load_schema, \
-    append_schema
+    append_schema, get_ip
 from .create_nosql_table import NosqlTable
 
 schema_dict = load_schema()
+BASIC_TYPE_BIND_CONVERT = {int: 'int', float: 'float', bool: 'bool', str: 'str',
+                           typing.List[int]: 'List[int]', typing.List[float]: 'List[float]',
+                           typing.List[bool]: 'List[bool]', typing.List[str]: 'List[str]'}
+
+BASIC_TYPE_BIND = {'int': int, 'float': float, 'bool': bool, 'str': str,
+                   'List[int]': typing.List[int], 'List[float]': typing.List[float],
+                   'List[bool]': typing.List[bool], 'List[str]': typing.List[str]}
+
+
+def _to_string(o):
+    if isinstance(o, np.ndarray):
+        return np.array2string(o, separator = ',')
+    else:
+        return str(o)
 
 
 def add(objs, *, kw: dict = {}):
     ''' tags are in kw, e.g. kw = {'tag': ['a', 'b']} '''
     schema_dict = load_schema()
-    prefix = ('int', 'bool', 'float', 'str', 'List[float]', 'List[int]', 'List[bool]', 'List[str]')
     Session = sessionmaker(bind = engine)
     session = Session()
     if not isinstance(objs, list):
@@ -34,7 +50,6 @@ def add(objs, *, kw: dict = {}):
         if class_name in schema_dict:
             schema = schema_dict[class_name]
         else:
-            print(class_name)
             schema_dict = append_schema(obj.__class__, schema_dict)
             schema = schema_dict[class_name]
 
@@ -47,15 +62,15 @@ def add(objs, *, kw: dict = {}):
                 import os
                 path_ = any_type_saver(getattr(obj, key))  # TODO should be take away
                 ext = os.path.splitext(path_)
-                val = 'res:' + file_hasher(path_) + ext[1]
-                new_path = resource_directory + val[4:]
+                val = get_ip() + ':' + resource_directory + file_hasher(path_) + ext[1]
+                new_path = val.split(':')[1]
                 if os.path.isfile(new_path):
                     file_deleter(path_)
                 else:
                     os.rename(path_, new_path)
                 m.update(val.encode('utf-8'))
-            elif spec.startswith(prefix):
-                val = str(getattr(obj, key))
+            elif spec[0] in BASIC_TYPE_BIND:
+                val = _to_string(getattr(obj, key))
                 m.update(val.encode('utf-8'))
             else:
                 val = add(getattr(obj, key))[0]
@@ -65,18 +80,20 @@ def add(objs, *, kw: dict = {}):
         hash_ = 'sha256:' + m.hexdigest()
 
         ''' hash check '''
-        ans = session.query(NosqlTable).filter(NosqlTable.hash == hash_).all()
+        ans = session.query(NosqlTable.hash).filter(NosqlTable.hash == hash_).all()
         if not ans:
             class_name_obj = [NosqlTable(hash = hash_, key = 'classname', val = class_name)]
             val_objs = [NosqlTable(hash = hash_, key = key, val = val) for key, val in
                         kwargs.items()]
             kw_objs = []
             for k, v in kw.items():
+                if k in schema:
+                    print(f"Warning: keyword '{k}' is already in schema. ignored.")
+                    continue
                 if isinstance(v, list):
                     kw_objs += [NosqlTable(hash = hash_, key = k, val = v_) for v_ in v]
                 else:
                     kw_objs += [NosqlTable(hash = hash_, key = k, val = v)]
-
             session.add_all(class_name_obj + val_objs + kw_objs)
             session.commit()
         else:
@@ -86,15 +103,22 @@ def add(objs, *, kw: dict = {}):
     return out_hash
 
 
-def add_keywords(hash_, *, kw: dict = {}):
+def add_keywords(hash_, *, kw: dict = {}, schema_key_check = False):
+    Session = sessionmaker(bind = engine)
+    session = Session()
+    if schema_key_check:
+        class_name = session.query(NosqlTable.val).filter(NosqlTable.key == 'classname').get(0)
+        schema_keys = list(schema_dict[class_name].keys())
+    else:
+        schema_keys = []
     kw_objs = []
     for k, v in kw.items():
+        if k in schema_keys:
+            continue
         if isinstance(v, list):
             kw_objs += [NosqlTable(hash = hash_, key = k, val = v_) for v_ in v]
         else:
             kw_objs += [NosqlTable(hash = hash_, key = k, val = v)]
-    Session = sessionmaker(bind = engine)
-    session = Session()
     session.add_all(kw_objs)
     session.commit()
     return hash_
