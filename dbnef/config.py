@@ -12,10 +12,23 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-engine = create_engine('postgresql://postgres:postgres@localhost/pitech_db', echo = False)
+ws1_engine_url = 'postgresql://postgres:postgres@192.168.1.111/nef_db'
+ws2_engine_url = 'postgresql://postgres:postgres@localhost/pitech_db'
+engine = create_engine(ws2_engine_url, echo = False)
 
 Session = sessionmaker(bind = engine)
 session = Session()
 
 Base = declarative_base()
 Base.metadata.bind = engine
+
+
+def update_engine(engine_url):
+    global engine, session, Base
+    engine = create_engine(engine_url, echo = False)
+
+    Session = sessionmaker(bind = engine)
+    session = Session()
+
+    Base = declarative_base()
+    Base.metadata.bind = engine
