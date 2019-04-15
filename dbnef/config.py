@@ -13,7 +13,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
 ws1_engine_url = 'postgresql://postgres:postgres@192.168.1.111/nef_db'
-ws2_engine_url = 'postgresql://postgres:postgres@localhost/pitech_db'
+ws2_engine_url = 'postgresql://postgres:postgres@localhost/pitech_nosql'
 engine = create_engine(ws2_engine_url, echo = False)
 
 Session = sessionmaker(bind = engine)
@@ -32,3 +32,6 @@ def update_engine(engine_url):
 
     Base = declarative_base()
     Base.metadata.bind = engine
+
+
+1
