@@ -71,31 +71,6 @@ def tqdm(*args, **kwargs):
         return tqdm_.tqdm(*args, **kwargs)
 
 
-def load_schema(path = SCHEMA_PATH + 'full_schema.json'):
-    import json
-    with open(path, 'r') as fin:
-        return json.load(fin)
-
-
-def append_schema(dct: dict, schema: dict = None, path = SCHEMA_PATH + 'full_schema.json'):
-    if schema is None:
-        import json
-        with open(path, 'r') as fin:
-            schema = json.load(fin)
-    from copy import copy
-    schema = copy(schema)
-    if isinstance(dct, type):
-        dct = dct.dumps(verbose = True)
-
-    for key in dct.keys():
-        if key in schema:
-            print(f"Warning('key {key} is duplicated')")
-            del dct[key]
-    else:
-        schema.update(dct)
-    return schema
-
-
 def convert_Camal_to_snake(name):
     s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
     return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
@@ -153,92 +128,5 @@ def dataclass_hasher(obj, exception = NECESSARIES):
     return m.hexdigest()
 
 
-def file_hasher(path: str):
-    if os.path.isdir(path):
-        raise ValueError('Only file can be hashed')
-
-    BLOCKSIZE = 65536
-    m = hashlib.sha256()
-
-    with open(path, 'rb') as fin:
-        buf = fin.read(BLOCKSIZE)
-        while len(buf) > 0:
-            m.update(buf)
-            buf = fin.read(BLOCKSIZE)
-    return m.hexdigest()
-
-
 def get_username():
     return getuser()
-
-
-def any_type_saver(data):
-    import numpy as np
-    from scipy import sparse
-    if isinstance(data, np.ndarray):
-        _path = get_hash_of_timestamp()
-        path = RESOURCE_PATH + _path + '.npy'
-        np.save(path, data)
-        return path
-    elif isinstance(data, sparse.coo.coo_matrix):
-        _path = get_hash_of_timestamp()
-        path = RESOURCE_PATH + _path + '.npz'
-        sparse.save_npz(path, data)
-        return path
-    else:
-        raise NotImplementedError(f'`any_saver` does not support type {type(data)} saving. ')
-
-
-def file_deleter(path_):
-    try:
-        os.remove(path_)
-    except:
-        ValueError(f'removing file at {path_} failed')
-
-
-def any_type_loader(path_: str):
-    import numpy as np
-    from scipy import sparse
-    if path_.endswith('npy'):
-        return np.load(path_)
-    elif path_.endswith('npz'):
-        return sparse.load_npz(path_)
-    else:
-        raise NotImplementedError(f'`any_type_loader` does not {path_} loading. ')
-
-
-def parse_table_class(table_name: str):
-    from .create_table_class import create_table
-
-    class_name = convert_snake_to_Camel(table_name)
-    table_class_name = class_name + 'Table'
-    if table_class_name in globals():
-        table_class = globals()[table_class_name]
-    elif class_name in globals():
-        table_class = create_table(globals()[class_name], commit = False)
-    elif 'TABLE_TYPE_BIND' in globals():
-        TYPE_BIND = globals()['TABLE_TYPE_BIND']
-        if table_class_name in TYPE_BIND:
-            table_class = TYPE_BIND[table_class_name]
-        elif class_name in TYPE_BIND:
-            table_class = create_table(globals()['TABLE_TYPE_BIND'][class_name], commit = False)
-    else:
-        raise ValueError(f'cannot find any envidence of {class_name} to do deserialization')
-    return table_class
-
-
-TYPE_BIND = {}
-
-import socket
-
-
-def get_ip():
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(('www.baidu.com', 0))
-        ip = s.getsockname()[0]
-    except:
-        ip = "x.x.x.x"
-    finally:
-        s.close()
-    return ip

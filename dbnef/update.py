@@ -1,9 +1,11 @@
-from dbnef.utils import load_schema
-from .add import add_keywords
+from basenef.utils import load_schema_file
+
+from .add_row import add_keywords
+from .config import SCHEMA_PATH
 from .delete import delete_with_hash
 from .query import search, _query_field_names
 
-schema_dict = load_schema()
+schema_dict = load_schema_file(SCHEMA_PATH)
 
 
 def update_with_hashes(hsh: str = None, *, kw: dict = None, mode = 'new', schema_check = True):

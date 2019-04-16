@@ -8,30 +8,62 @@
 @desc:
 """
 
-from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
+from contextlib import contextmanager
+
+import basenef as base
 from sqlalchemy.orm import sessionmaker
 
 ws1_engine_url = 'postgresql://postgres:postgres@192.168.1.111/nef_db'
-ws2_engine_url = 'postgresql://postgres:postgres@localhost/pitech_nosql'
-engine = create_engine(ws2_engine_url, echo = False)
-
-Session = sessionmaker(bind = engine)
-session = Session()
-
-Base = declarative_base()
-Base.metadata.bind = engine
+ws2_engine_url = 'postgresql://postgres:postgres@localhost/pitech_nosql_test'
 
 
-def update_engine(engine_url):
-    global engine, session, Base
+@contextmanager
+def create_engine(engine_url = ws2_engine_url):
+    from sqlalchemy import create_engine
     engine = create_engine(engine_url, echo = False)
+    try:
+        yield engine
+    except:
+        pass
+    finally:
+        pass
 
-    Session = sessionmaker(bind = engine)
-    session = Session()
 
-    Base = declarative_base()
-    Base.metadata.bind = engine
+@contextmanager
+def create_session(*, engine_url = ws2_engine_url, is_commit = True):
+    with create_engine(engine_url) as engine:
+        Session = sessionmaker(bind = engine)
+        session = Session()
+        try:
+            yield session
+        except:
+            pass
+        finally:
+            if is_commit:
+                session.commit()
+            session.close()
 
 
-1
+@contextmanager
+def create_base_class(engine_url = ws2_engine_url):
+    from sqlalchemy.ext.declarative import declarative_base
+    with create_engine(engine_url) as engine:
+        try:
+            Base = declarative_base()
+            Base.metadata.bind = engine
+            yield Base
+        except:
+            pass
+        finally:
+            pass
+
+
+SCHEMA_DIR = base.config.SCHEMA_DIR
+SCHEMA_PATH = SCHEMA_DIR + 'dbnef_schema.json'
+
+import json
+import os
+
+if not os.path.isfile(SCHEMA_PATH):
+    with open(SCHEMA_PATH, 'w') as fout:
+        json.dump({}, fout, indent = 4, separators = (',', ':'))
