@@ -54,3 +54,10 @@ def create_base_class(engine_url = ws2_engine_url):
             pass
         finally:
             pass
+
+
+from sqlalchemy.ext.declarative import declarative_base
+
+with create_engine() as engine:
+    Base = declarative_base()
+    Base.metadata.bind = engine

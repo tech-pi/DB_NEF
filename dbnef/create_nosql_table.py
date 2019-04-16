@@ -10,15 +10,15 @@
 
 from sqlalchemy import Column, Integer, String
 
-from dbnef.config import create_base_class
+from dbnef.config import create_base_class, Base
 
-with create_base_class() as Base:
-    class NosqlTable(Base):
-        __tablename__ = 'nosql_table'
-        id = Column(Integer, primary_key = True)
-        hash = Column(String)
-        key = Column(String)
-        val = Column(String, nullable = True)
+
+class NosqlTable(Base):
+    __tablename__ = 'nosql_table'
+    id = Column(Integer, primary_key = True)
+    hash = Column(String)
+    key = Column(String)
+    val = Column(String, nullable = True)
 
 
 def create_nosql_table():

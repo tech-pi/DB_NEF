@@ -61,5 +61,5 @@ def clear_nosql_table(*, pw: str = None):
         return 0
     with create_session() as session:
         session.query(NosqlTable).delete()
-        session.close()
+        session.commit()
     return 1
