@@ -9,7 +9,7 @@
 '''
 import pandas as pd
 
-from dbnef.config import create_session
+from .config import create_session
 from .create_nosql_table import NosqlTable
 
 

@@ -7,13 +7,12 @@
 @date: 3/13/2019
 @desc:
 '''
-from basenef.utils import load_schema_file
-
-from dbnef.config import create_session, SCHEMA_PATH
+from dbnef.config import create_session
 from .create_nosql_table import NosqlTable
 from .query import search
+from .utils import load_schema_file
 
-schema_dict = load_schema_file(SCHEMA_PATH)
+schema_dict = load_schema_file()
 
 
 def delete_with_hash(hsh: str = None, fields: list = [], schema_check = True):
