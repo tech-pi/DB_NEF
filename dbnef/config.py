@@ -7,10 +7,8 @@
 @date: 3/13/2019
 @desc:
 """
-
 from contextlib import contextmanager
 
-import basenef as base
 from sqlalchemy.orm import sessionmaker
 
 ws1_engine_url = 'postgresql://postgres:postgres@192.168.1.111/nef_db'
@@ -56,14 +54,3 @@ def create_base_class(engine_url = ws2_engine_url):
             pass
         finally:
             pass
-
-
-SCHEMA_DIR = base.config.SCHEMA_DIR
-SCHEMA_PATH = SCHEMA_DIR + 'dbnef_schema.json'
-
-import json
-import os
-
-if not os.path.isfile(SCHEMA_PATH):
-    with open(SCHEMA_PATH, 'w') as fout:
-        json.dump({}, fout, indent = 4, separators = (',', ':'))

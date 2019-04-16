@@ -8,125 +8,151 @@
 @desc:
 '''
 import hashlib
+import json
 import os
 import platform
-import re
-import sys
-import time
-from dataclasses import fields as fields_official
-from dataclasses import is_dataclass as is_dataclass_official
-from getpass import getuser
+import typing
 
-import tqdm as tqdm_
-
-TABLE_TYPE_BIND = {}
+import numpy as np
+from scipy import sparse
 
 if 'Windows' in platform.system():
     separator = '\\'
 else:
     separator = '/'
 
-DATABASE_PATH = os.environ['HOME'] + separator + 'Database_nef' + separator
-RESOURCE_PATH = DATABASE_PATH + 'resources' + separator
-SCHEMA_PATH = DATABASE_PATH + 'schemas' + separator
+DATABASE_DIR = os.environ['HOME'] + separator + 'Database_nef' + separator
+RESOURCE_DIR = DATABASE_DIR + 'resources' + separator
+CACHE_DIR = DATABASE_DIR + 'caches' + separator
+SCHEMA_PATH = os.path.abspath(os.path.dirname(os.path.abspath(__file__))) + 'schema.json'
+_PATH_LIST = [DATABASE_DIR, RESOURCE_DIR, CACHE_DIR]
+
+for _path in _PATH_LIST:
+    if not os.path.isdir(_path):
+        os.mkdir(_path)
+
+BASIC_TYPE_DICT = {'int': int,
+                   'str': str,
+                   'bool': bool,
+                   'float': float,
+                   'List[int]': typing.List[int],
+                   'List[str]': typing.List[str],
+                   'List[bool]': typing.List[bool],
+                   'List[float]': typing.List[float]}
+
+BASIC_TYPE_DICT_REVERT = {int: 'int', float: 'float', bool: 'bool', str: 'str',
+                          typing.List[int]: 'List[int]', typing.List[float]: 'List[float]',
+                          typing.List[bool]: 'List[bool]', typing.List[str]: 'List[str]'}
+
+if not os.path.isfile(SCHEMA_PATH):
+    with open(SCHEMA_PATH, 'w') as fout:
+        json.dump({}, fout, indent = 4, separators = (',', ':'))
 
 
-def is_dataclass(cls):
-    if is_dataclass_official(cls):
-        return True
-    try:
-        cls.fields()
-        return True
-    except:
-        return False
+def load_schema_file(path = SCHEMA_PATH):
+    with open(path, 'r') as fin:
+        dct = json.load(fin)
+    return dct
 
 
-def fields(cls):
-    if is_dataclass_official(cls):
-        return fields_official(cls)
+def append_schema(schema, dct: dict = None):
+    if dct is None:
+        return schema
+    if isinstance(dct, dict):
+        schema.update(dct)
+    elif isinstance(dct, type):
+        cls_dct = {}
+        for k, v in dct.__annotations__.items():
+            if v in BASIC_TYPE_DICT_REVERT:
+                cls_dct.update({k: BASIC_TYPE_DICT_REVERT[v]})
+            elif v.__name__ in schema or v.__name__ in cls_dct:
+                continue
+            elif k == 'data':
+                cls_dct.update({k: 'str'})
+            else:
+                append_schema(schema, v)
+                cls_dct.update({k: v.__name__})
+        cls_dct = {dct.__name__: cls_dct}
+        schema.update(cls_dct)
     else:
-        try:
-            return list(cls.fields().values())
-        except:
-            raise ValueError
+        raise NotImplementedError
+
+    return schema
 
 
-def is_notebook():
-    '''check if the current environment is `ipython`/ `notebook`
-    '''
-    return 'ipykernel' in sys.modules
+def append_schema_file(dct: dict = None, path = SCHEMA_PATH):
+    with open(path, 'r') as fin:
+        schema = json.load(fin)
+    if dct is None:
+        return schema
+
+    append_schema(schema, dct)
+    with open(path, 'w') as fout:
+        json.dump(schema, fout)
+    return schema
 
 
-is_ipython = is_notebook
+def file_hasher(path: str):
+    import os
+    if os.path.isdir(path):
+        raise ValueError('Only file can be hashed')
 
-
-def tqdm(*args, **kwargs):
-    '''same as tqdm.tqdm
-    Automatically switch between `tqdm.tqdm` and `tqdm.tqdm_notebook` accoding to the runtime
-    environment.
-    '''
-    if is_notebook():
-        return tqdm_.tqdm_notebook(*args, **kwargs)
-    else:
-        return tqdm_.tqdm(*args, **kwargs)
-
-
-def convert_Camal_to_snake(name):
-    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
-    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
-
-
-def convert_snake_to_Camel(name):
-    out = ''
-    for ele in name.split('_'):
-        out += ele.capitalize()
-    return out
-
-
-def get_timestamp():
-    return time.time()
-
-
-def get_current_time():
-    return time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(int(get_timestamp())))
-
-
-def get_hash_of_timestamp():
+    BLOCKSIZE = 65536
     m = hashlib.sha256()
-    timestamp = time.time()
-    m.update(str(timestamp).encode('utf-8'))
+
+    with open(path, 'rb') as fin:
+        buf = fin.read(BLOCKSIZE)
+        while len(buf) > 0:
+            m.update(buf)
+            buf = fin.read(BLOCKSIZE)
     return m.hexdigest()
 
 
-NECESSARIES = ('_sa_instance_state', 'id', 'state', 'add', 'submit', 'finish', 'depends',
-               'scheduler', 'backend', 'workdir', 'id_on_backend', 'state_on_backend', 'worker',
-               'script', 'inputs', 'outputs', 'fn', 'creator', 'labels', 'datetime',
-               'hash_', 'tasks', 'data_shape', 'extend_existing', 'status')
+def local_data_saver(data = None):
+    import numpy as np
+    from scipy import sparse
+    from basenef.utils import get_hash_of_timestamp
 
-EXCEPTIONS = NECESSARIES + ()
+    cache_path = CACHE_DIR + get_hash_of_timestamp()
+    if data is None:
+        return -1
+    if isinstance(data, np.ndarray):
+        np.save(cache_path + '.npy', data)
+        ext = '.npy'
+        cache_path += ext
+    elif isinstance(data, sparse.coo_matrix):
+        sparse.save_npz(cache_path + '.npz', data)
+        ext = '.npz'
+        cache_path += ext
+    else:
+        raise ValueError(f'Unsupported data type {data.__class__.__name__} saving.')
+    hash_ = file_hasher(cache_path)
+
+    res_path = RESOURCE_DIR + hash_ + ext
+    if not os.path.isfile(res_path):
+        from shutil import move
+        move(cache_path, res_path)
+    else:
+        os.remove(cache_path)
+
+    return res_path
 
 
-def dict_hasher(dct: dict, exception = NECESSARIES):
-    m = hashlib.sha256()
-    for key, val in dct.items():
-        if key in exception:
-            continue
-        m.update(str(val).encode('utf-8'))
-    return m.hexdigest()
-
-
-def dataclass_hasher(obj, exception = NECESSARIES):
-    m = hashlib.sha256()
-    dct = obj.as_dict(recurse = False)
-    for key, val in dct.items():
-        if key in exception:
-            continue
-        elif is_dataclass(val):
-            m.update(str(val.as_dict(recurse = False)).encode('utf-8'))
+def local_data_loader(filename: str):
+    if RESOURCE_DIR not in filename:
+        path = RESOURCE_DIR + filename
+        for ext in ['.npy', '.npz']:
+            if os.path.isfile(path + ext):
+                path += ext
+                break
         else:
-            m.update(str(val).encode('utf-8'))
-    return m.hexdigest()
+            raise ValueError(f'Cannot find valid resource file with filename / hash: {filename}')
+    else:
+        path = filename
 
-
-def get_username():
-    return getuser()
+    if path.endswith('.npy'):
+        return np.load(path)
+    elif path.endswith('.npz'):
+        return sparse.load_npz(path)
+    else:
+        raise NotImplementedError(f'`local_data_loader` does not support {path} loading.')

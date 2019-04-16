@@ -10,16 +10,11 @@
 
 import hashlib
 
-import basenef as base
 import numpy as np
 
-from dbnef.config import create_session, SCHEMA_PATH
+from .config import create_session
 from .create_nosql_table import NosqlTable
-
-schema_dict = base.utils.load_schema_file(SCHEMA_PATH)
-BASIC_TYPE_BIND_CONVERT = base.typings.BASIC_TYPE_DICT_REVERT
-
-BASIC_TYPE_BIND = base.typings.BASIC_TYPE_DICT
+from .utils import load_schema_file, append_schema_file, local_data_saver, BASIC_TYPE_DICT
 
 
 def _to_string(o):
@@ -38,13 +33,13 @@ def add_objects(objs, *, kw: dict = {}):
     out_hash = []
     for obj in objs:
 
-        schema_dict = base.utils.load_schema_file(SCHEMA_PATH)
+        schema_dict = load_schema_file()
         class_name = obj.__class__.__name__
 
         if class_name in schema_dict:
             schema = schema_dict[class_name]
         else:
-            schema_dict = base.utils.append_schema_file(SCHEMA_PATH, obj.__class__)
+            schema_dict = append_schema_file(obj.__class__)
             schema = schema_dict[class_name]
 
         m = hashlib.sha256()
@@ -53,11 +48,9 @@ def add_objects(objs, *, kw: dict = {}):
             if getattr(obj, key) is None:
                 val = None
             elif key == 'data':
-                path_ = base.file_io.local_data_saver(
-                    getattr(obj, key))  # TODO should be take away
-                val = path_.split(['/', '.'])[-2]
+                val = local_data_saver(getattr(obj, key))  # TODO should be take away
                 m.update(val.encode('utf-8'))
-            elif spec in BASIC_TYPE_BIND:
+            elif spec in BASIC_TYPE_DICT:
                 val = _to_string(getattr(obj, key))
                 m.update(val.encode('utf-8'))
             else:
@@ -145,7 +138,7 @@ def add_keywords(hash_, *, kw: dict = {}, schema_check = True):
         if schema_check:
             class_name = session.query(NosqlTable.val).filter(NosqlTable.key == 'classname',
                                                               NosqlTable.hash == hash_).all()[0][0]
-            schema_keys = list(schema_dict[class_name].keys())
+            schema_keys = list(load_schema_file()[class_name].keys())
         else:
             schema_keys = []
         kw_objs = []
