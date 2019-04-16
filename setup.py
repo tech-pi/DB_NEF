@@ -2,8 +2,8 @@ from setuptools import setup, find_packages
 
 MAJOR = 0
 MINOR = 0
-MICRO = 1  # 0 for alpha, 1 for beta, 2 for release candicate, 3 for release
-MINOR_SUB = 2
+MICRO = 2  # 0 for alpha, 1 for beta, 2 for release candicate, 3 for release
+MINOR_SUB = 3
 
 
 def get_version(major, minor, micro, minor_sub):
